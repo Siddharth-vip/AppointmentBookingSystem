@@ -1,0 +1,190 @@
+﻿@{
+    ViewData["Title"] = "Privacy Policy";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<style>
+
+body{
+    font-family:'Segoe UI',sans-serif;
+    background:#f5f7fb;
+}
+
+/* NAVBAR */
+
+.navbar{
+    position:sticky;
+    top:0;
+    z-index:1000;
+}
+
+.navbar-brand{
+    font-weight:700;
+    color:#1c66d6 !important;
+}
+
+/* HEADER SECTION */
+
+.header-section{
+    background:linear-gradient(120deg,#1c66d6,#1a4fb6);
+    color:white;
+    padding:80px 0;
+    text-align:center;
+}
+
+/* CONTENT */
+
+.privacy-content{
+    background:white;
+    padding:50px;
+    margin-top:-40px;
+    border-radius:10px;
+    box-shadow:0 4px 20px rgba(0,0,0,.08);
+}
+
+/* FOOTER */
+
+.footer{
+    text-align:center;
+    margin-top:80px;
+    padding:30px;
+    background:white;
+    border-top:1px solid #eee;
+}
+
+</style>
+
+
+<!-- NAVBAR -->
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+
+<div class="container">
+
+<a class="navbar-brand">DoctorAppointment</a>
+
+<ul class="navbar-nav mx-auto">
+
+<li class="nav-item">
+<a class="nav-link" href="/">Home</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link" href="/Doctor">Find a Doctor</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link">Services</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link">About</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link">Contact</a>
+</li>
+
+</ul>
+
+<div>
+
+<a href="/Auth/Login" class="btn btn-outline-primary me-2">
+Login
+</a>
+
+<a href="/Auth/Register" class="btn btn-primary">
+Sign Up
+</a>
+
+</div>
+
+</div>
+
+</nav>
+
+
+<!-- PAGE HEADER -->
+
+<section class="header-section">
+
+<div class="container">
+
+<h1>Privacy Policy</h1>
+<p>Your privacy and data security are important to us.</p>
+
+</div>
+
+</section>
+
+
+<!-- PRIVACY CONTENT -->
+
+<div class="container">
+
+<div class="privacy-content">
+
+<h4>Information We Collect</h4>
+
+<p>
+Our appointment booking system collects personal information such as your name,
+email address, phone number, and appointment details in order to provide a smooth
+healthcare booking experience.
+</p>
+
+<br>
+
+<h4>How We Use Your Information</h4>
+
+<p>
+The information collected is used to:
+</p>
+
+<ul>
+<li>Schedule and manage doctor appointments</li>
+<li>Send appointment confirmations</li>
+<li>Improve our healthcare services</li>
+<li>Provide customer support</li>
+</ul>
+
+<br>
+
+<h4>Data Security</h4>
+
+<p>
+We implement appropriate security measures to protect your personal information
+from unauthorized access, disclosure, or misuse.
+</p>
+
+<br>
+
+<h4>Third-Party Services</h4>
+
+<p>
+We do not sell or share your personal data with third parties except when required
+to deliver medical services or comply with legal requirements.
+</p>
+
+<br>
+
+<h4>Contact Us</h4>
+
+<p>
+If you have any questions regarding our privacy policy, please contact our
+support team.
+</p>
+
+</div>
+
+</div>
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+© 2026 - Appointment.UI  
+<a href="/Home/Privacy">Privacy</a>
+
+</div>

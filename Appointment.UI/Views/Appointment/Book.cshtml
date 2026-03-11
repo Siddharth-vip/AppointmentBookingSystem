@@ -1,0 +1,86 @@
+@model List<Appointment.UI.Models.TimeSlot>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<style>
+
+body{
+background:#f5f7fb;
+font-family:'Segoe UI';
+}
+
+.slot-card{
+background:white;
+border-radius:10px;
+padding:25px;
+text-align:center;
+box-shadow:0 4px 10px rgba(0,0,0,.1);
+margin-bottom:20px;
+transition:0.3s;
+}
+
+.slot-card:hover{
+transform:translateY(-3px);
+}
+
+</style>
+
+<div class="container mt-5">
+
+<h2 class="text-center mb-5">Available Time Slots</h2>
+
+<div class="row">
+
+@if(Model != null && Model.Any(s => !s.IsBooked))
+{
+    foreach(var slot in Model.Where(s => !s.IsBooked))
+    {
+
+        <div class="col-md-4">
+
+            <div class="slot-card">
+
+                <h5>
+                    Date : @slot.SlotDate.ToString("dd MMM yyyy")
+                </h5>
+
+                <p class="mt-2">
+                    Time :
+                    @slot.StartTime - @slot.EndTime
+                </p>
+
+                <form method="post"
+                      asp-controller="Appointment"
+                      asp-action="BookAppointment">
+
+                    <input type="hidden"
+                           name="doctorId"
+                           value="@ViewBag.DoctorId" />
+
+                    <input type="hidden"
+                           name="slotId"
+                           value="@slot.SlotId" />
+
+                    <button type="submit" class="btn btn-success w-100">
+                        Book Appointment
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    }
+}
+else
+{
+<div class="text-center">
+<h5>No slots available</h5>
+</div>
+}
+
+</div>
+
+</div>

@@ -1,0 +1,174 @@
+﻿@model List<Appointment.UI.Models.Doctor>
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Doctor Appointment</title>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+<style>
+
+body{
+font-family:'Segoe UI';
+background:#f5f7fb;
+}
+
+.navbar{
+position:sticky;
+top:0;
+z-index:1000;
+}
+
+.hero{
+background:linear-gradient(120deg,#1c66d6,#1a4fb6);
+color:white;
+padding:100px 0;
+text-align:center;
+}
+
+.hero h1{
+font-size:48px;
+font-weight:bold;
+}
+
+.hero p{
+font-size:20px;
+margin-top:10px;
+}
+
+.doctor-card{
+background:white;
+border-radius:10px;
+padding:20px;
+box-shadow:0 4px 10px rgba(0,0,0,.1);
+transition:.3s;
+}
+
+.doctor-card:hover{
+transform:translateY(-5px);
+}
+
+.footer{
+text-align:center;
+padding:30px;
+margin-top:80px;
+border-top:1px solid #eee;
+background:#fff;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg bg-white shadow-sm">
+
+<div class="container">
+
+<a class="navbar-brand fw-bold">DoctorAppointment</a>
+
+<ul class="navbar-nav mx-auto">
+
+<li class="nav-item">
+<a class="nav-link" href="/">Home</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link" href="/Appointment/Doctors">Find Doctor</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link" href="/Home/About">About</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link" href="/Home/Contact">Contact</a>
+</li>
+
+</ul>
+
+</div>
+
+</nav>
+
+
+<section class="hero">
+
+<div class="container">
+
+<h1>Book Your Doctor Appointment Online</h1>
+
+<p>Schedule appointments quickly with professional doctors</p>
+
+</div>
+
+</section>
+
+
+<div class="container mt-5">
+
+<h2 class="text-center mb-5">Available Doctors</h2>
+
+<div class="row">
+
+@if(Model != null && Model.Count > 0)
+{
+    foreach(var doctor in Model)
+    {
+
+        <div class="col-md-4 mb-4">
+
+            <div class="doctor-card">
+
+                <h4>@doctor.DoctorName</h4>
+
+                <p><b>Specialization:</b> @doctor.Specialization</p>
+
+                <p><b>Phone:</b> @doctor.Phone</p>
+
+                <a href="/Appointment/Book?doctorId=@doctor.DoctorId"
+                   class="btn btn-primary w-100">
+
+                   Book Appointment
+
+                </a>
+
+            </div>
+
+        </div>
+
+    }
+}
+else
+{
+    <div class="text-center">
+        <h4>No doctors available</h4>
+    </div>
+}
+
+</div>
+
+</div>
+
+
+<div class="footer">
+
+<p>© 2026 DoctorAppointment</p>
+
+</div>
+
+
+<script
+src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
+</script>
+
+</body>
+
+</html>
