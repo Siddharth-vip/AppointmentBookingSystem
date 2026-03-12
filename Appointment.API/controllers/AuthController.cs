@@ -15,7 +15,7 @@ namespace Appointment.API.Controllers
         [HttpPost("login")]
         public IActionResult Login(string email, string password)
         {
-            var user = repo.LoginUser(email, password);
+            var user = repo.Login(email, password);
 
             if (user == null)
             {

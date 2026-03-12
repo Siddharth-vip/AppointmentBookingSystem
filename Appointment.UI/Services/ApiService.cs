@@ -28,7 +28,7 @@ namespace Appointment.UI.Services
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("auth/login", content);
+            var response = await _httpClient.PostAsync("user/login", content);
 
             if (!response.IsSuccessStatusCode)
                 return null;
@@ -51,7 +51,7 @@ namespace Appointment.UI.Services
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("auth/register", content);
+            var response = await _httpClient.PostAsync("user/register", content);
 
             return response.IsSuccessStatusCode;
         }
@@ -95,11 +95,34 @@ namespace Appointment.UI.Services
         }
 
         // ===============================
-        // GET TIMESLOTS BY DOCTOR
+        // GET AVAILABLE DOCTORS
+        // ===============================
+        public async Task<List<Doctor>> GetAvailableDoctorsAsync(DateTime date, TimeSpan time)
+{
+    string formattedDate = date.ToString("yyyy-MM-dd");
+    string formattedTime = time.ToString(@"hh\:mm\:ss");
+
+    var response = await _httpClient.GetAsync(
+        $"doctor/available?date={formattedDate}&time={formattedTime}");
+
+    if (!response.IsSuccessStatusCode)
+        return new List<Doctor>();
+
+    var json = await response.Content.ReadAsStringAsync();
+
+    return JsonSerializer.Deserialize<List<Doctor>>(json,
+        new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        }) ?? new List<Doctor>();
+}
+
+        // ===============================
+        // GET TIMESLOTS
         // ===============================
         public async Task<List<TimeSlot>> GetTimeSlotsAsync(int doctorId)
         {
-            var response = await _httpClient.GetAsync($"timeslot/doctor/{doctorId}");
+            var response = await _httpClient.GetAsync($"timeslot/{doctorId}");
 
             if (!response.IsSuccessStatusCode)
                 return new List<TimeSlot>();
@@ -116,15 +139,9 @@ namespace Appointment.UI.Services
         // ===============================
         // BOOK APPOINTMENT
         // ===============================
-        public async Task<bool> BookAppointmentAsync(int userId, int slotId)
+        public async Task<bool> BookAppointmentAsync(Appointment.UI.Models.Appointment appointment)
         {
-            var data = new
-            {
-                UserId = userId,
-                SlotId = slotId
-            };
-
-            var json = JsonSerializer.Serialize(data);
+            var json = JsonSerializer.Serialize(appointment);
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 

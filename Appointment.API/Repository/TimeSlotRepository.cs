@@ -8,7 +8,7 @@ namespace Appointment.API.Repository
     {
         private readonly DbConnection db = new DbConnection();
 
-        // GET SLOTS FOR DOCTOR
+        // GET ALL SLOTS FOR DOCTOR
         public List<TimeSlot> GetSlotsByDoctor(int doctorId)
         {
             List<TimeSlot> slots = new List<TimeSlot>();
@@ -19,7 +19,7 @@ namespace Appointment.API.Repository
 
                 string query = @"SELECT SlotId, DoctorId, SlotDate, StartTime, EndTime, IsBooked
                                  FROM TimeSlots
-                                 WHERE DoctorId = @DoctorId AND IsBooked = 0";
+                                 WHERE DoctorId = @DoctorId";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@DoctorId", doctorId);
@@ -48,13 +48,13 @@ namespace Appointment.API.Repository
             return slots;
         }
 
-        // GET AVAILABLE SLOTS (USED BY CONTROLLER)
+        // USED BY CONTROLLER
         public List<TimeSlot> GetAvailableSlots(int doctorId)
         {
             return GetSlotsByDoctor(doctorId);
         }
 
-        // TOTAL APPOINTMENTS FOR ADMIN DASHBOARD
+        // ADMIN DASHBOARD
         public int GetTotalAppointments()
         {
             int total = 0;

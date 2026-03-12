@@ -1,0 +1,81 @@
+@using Appointment.UI.Models
+@model List<TimeSlot>
+
+@{
+    ViewData["Title"] = "Doctor Slots";
+}
+
+<h2>Doctor Available Slots</h2>
+
+<table class="table table-bordered">
+
+    <thead>
+        <tr>
+            <th>Slot ID</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+@foreach (var slot in Model)
+{
+    <tr>
+
+        <td>@slot.SlotId</td>
+
+        <td>@slot.SlotDate</td>
+
+        <td>@slot.StartTime</td>
+
+        <td>@slot.EndTime</td>
+
+        <td>
+            @if (slot.IsBooked)
+            {
+                <span style="color:red;font-weight:bold;">
+                    Booked
+                </span>
+            }
+            else
+            {
+                <span style="color:green;font-weight:bold;">
+                    Available
+                </span>
+            }
+        </td>
+
+        <td>
+
+            @if (!slot.IsBooked)
+            {
+                <a asp-controller="Appointment"
+   asp-action="Book"
+   asp-route-slotId="@slot.SlotId"
+   class="btn btn-success">
+   Book Appointment
+</a>
+            }
+            else
+            {
+                <button class="btn btn-secondary" disabled>
+                    Not Available
+                </button>
+            }
+
+        </td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+<a href="/Doctor" class="btn btn-primary">
+    Back
+</a>

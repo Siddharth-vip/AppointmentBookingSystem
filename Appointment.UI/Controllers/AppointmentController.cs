@@ -17,16 +17,21 @@ namespace Appointment.UI.Controllers
         // SHOW TIME SLOTS
         // ===============================
         public async Task<IActionResult> Book(int doctorId)
-        {
-            ViewBag.DoctorId = doctorId;
+{
+    var slots = await api.GetTimeSlotsAsync(doctorId);
 
-            var slots = await api.GetTimeSlotsAsync(doctorId);
+    if (slots == null)
+        slots = new List<TimeSlot>();
 
-            if (slots == null)
-                slots = new List<TimeSlot>();
+    ViewBag.Slots = slots;
 
-            return View(slots);
-        }
+    var appointment = new Appointment.UI.Models.Appointment
+{
+    DoctorId = doctorId
+};
+
+    return View(appointment);
+}
 
         // ===============================
         // BOOK APPOINTMENT
@@ -49,8 +54,18 @@ namespace Appointment.UI.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            // BOOK SLOT
-            await api.BookAppointmentAsync(user.UserId, slotId);
+            // Create appointment object
+            var appointment = new Appointment.UI.Models.Appointment
+            {
+                UserId = user.UserId,
+                DoctorId = doctorId,
+                SlotId = slotId,
+                AppointmentDate = DateTime.Now,
+                Status = "Booked"
+            };
+
+            // Call API
+            await api.BookAppointmentAsync(appointment);
 
             return RedirectToAction("Confirmed");
         }

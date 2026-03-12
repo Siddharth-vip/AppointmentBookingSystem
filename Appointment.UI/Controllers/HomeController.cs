@@ -13,16 +13,10 @@ namespace Appointment.UI.Controllers
             _apiService = apiService;
         }
 
-        public async Task<IActionResult> Index()
+        // Landing Page
+        public IActionResult Index()
         {
-            var doctors = await _apiService.GetDoctorsAsync();
-
-            if (doctors == null)
-            {
-                doctors = new List<Doctor>();
-            }
-
-            return View(doctors);
+            return View();
         }
 
         public IActionResult About()

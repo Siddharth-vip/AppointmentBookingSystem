@@ -15,7 +15,10 @@ namespace Appointment.API.Controllers
             repo = new DoctorRepository();
         }
 
-        // GET: api/doctor/all
+        // ==========================================
+        // GET ALL DOCTORS
+        // api/doctor/all
+        // ==========================================
         [HttpGet("all")]
         public IActionResult GetAllDoctors()
         {
@@ -27,6 +30,31 @@ namespace Appointment.API.Controllers
             }
 
             return Ok(doctors);
+        }
+
+
+        // ==========================================
+        // GET AVAILABLE DOCTORS
+        // api/doctor/available?date=2026-03-06&time=10:00:00
+        // ==========================================
+        [HttpGet("available")]
+        public IActionResult GetAvailableDoctors(DateTime date, TimeSpan time)
+        {
+            try
+            {
+                var doctors = repo.GetAvailableDoctors(date, time);
+
+                if (doctors == null || doctors.Count == 0)
+                {
+                    return NotFound("No doctors available at this time");
+                }
+
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

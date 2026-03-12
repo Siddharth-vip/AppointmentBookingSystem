@@ -1,52 +1,99 @@
-using Microsoft.AspNetCore.Mvc;
-using Appointment.API.Repository;
+using Microsoft.Data.SqlClient;
+using Appointment.API.Database;
 using Appointment.API.Models;
 
-namespace Appointment.API.Controllers
+namespace Appointment.API.Repository
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class UserController : ControllerBase
+    public class UserController
     {
-        private readonly UserRepository repo = new UserRepository();
+        private readonly DbConnection db = new DbConnection();
 
-
-        // LOGIN
-        [HttpPost("login")]
-        public IActionResult Login([FromBody] User user)
+        // LOGIN USER
+        public User? LoginUser(string email, string password)
         {
-            var loggedUser = repo.LoginUser(user.Email, user.Password);
+            User? user = null;
 
-            if (loggedUser == null)
-                return Unauthorized("Invalid login");
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
 
-            return Ok(loggedUser);
+                string query = "SELECT * FROM Users WHERE Email=@Email AND Password=@Password";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.Parameters.AddWithValue("@Password", password);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    user = new User
+                    {
+                        UserId = Convert.ToInt32(reader["UserId"]),
+                        Name = reader["Name"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Password = reader["Password"].ToString(),
+                        Phone = reader["Phone"].ToString()
+                    };
+                }
+            }
+
+            return user;
         }
 
-
-        // REGISTER
-        [HttpPost("register")]
-        public IActionResult Register([FromBody] User user)
+        // REGISTER USER
+        public bool RegisterUser(User user)
         {
-            var success = repo.RegisterUser(user);
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
 
-            if (!success)
-                return BadRequest("Registration failed");
+                string query = @"INSERT INTO Users(Name,Email,Password,Phone)
+                                 VALUES(@Name,@Email,@Password,@Phone)";
 
-            return Ok("User registered successfully");
+                SqlCommand cmd = new SqlCommand(query, conn);
+
+                cmd.Parameters.AddWithValue("@Name", user.Name);
+                cmd.Parameters.AddWithValue("@Email", user.Email);
+                cmd.Parameters.AddWithValue("@Password", user.Password);
+                cmd.Parameters.AddWithValue("@Phone", user.Phone ?? "");
+
+                int rows = cmd.ExecuteNonQuery();
+
+                return rows > 0;
+            }
         }
-
 
         // GET USER BY EMAIL
-        [HttpGet("email/{email}")]
-        public IActionResult GetUserByEmail(string email)
+        public User? GetUserByEmail(string email)
         {
-            var user = repo.GetUserByEmail(email);
+            User? user = null;
 
-            if (user == null)
-                return NotFound();
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
 
-            return Ok(user);
+                string query = "SELECT * FROM Users WHERE Email=@Email";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Email", email);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    user = new User
+                    {
+                        UserId = Convert.ToInt32(reader["UserId"]),
+                        Name = reader["Name"].ToString(),
+                        Email = reader["Email"].ToString(),
+                        Password = reader["Password"].ToString(),
+                        Phone = reader["Phone"].ToString()
+                    };
+                }
+            }
+
+            return user;
         }
     }
 }
