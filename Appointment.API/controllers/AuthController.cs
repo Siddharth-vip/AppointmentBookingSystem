@@ -12,23 +12,64 @@ namespace Appointment.API.Controllers
         UserRepository repo = new UserRepository();
         JwtService jwt = new JwtService();
 
+        // ===============================
+        // LOGIN USER
+        // ===============================
         [HttpPost("login")]
-        public IActionResult Login(string email, string password)
+        public IActionResult Login([FromQuery] string email, [FromQuery] string password)
         {
-            var user = repo.Login(email, password);
+            Console.WriteLine("🔥 LOGIN HIT");
+            Console.WriteLine("Email: " + email);
+
+            var user = repo.Login(email, password); // ✅ FIXED
 
             if (user == null)
             {
-                return Unauthorized("Invalid email or password");
+                return BadRequest("Invalid email or password");
             }
 
             var token = jwt.GenerateToken(user.Email);
 
             return Ok(new
+{
+    message = "Login successful",
+    token = token,
+    role = user.Role,   // ✅ ADD THIS
+    user = user
+});
+        }
+
+        // ===============================
+        // REGISTER USER (NEW)
+        // ===============================
+        [HttpPost("register")]
+        public IActionResult Register([FromBody] Appointment.API.Models.User user)
+        {
+            Console.WriteLine("🔥 REGISTER HIT");
+            Console.WriteLine("Email: " + user.Email);
+
+            if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password))
             {
-                message = "Login successful",
-                token = token,
-                user = user
+                return BadRequest("Invalid data");
+            }
+
+            var existingUser = repo.GetUserByEmail(user.Email);
+
+            if (existingUser != null)
+            {
+                return BadRequest("User already exists");
+            }
+
+            bool result = repo.RegisterUser(user);
+
+            if (!result)
+            {
+                return BadRequest("Registration failed");
+            }
+
+            return Ok(new
+            {
+                message = "User registered successfully"
             });
         }
     }

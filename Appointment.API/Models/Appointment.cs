@@ -1,6 +1,6 @@
 namespace Appointment.API.Models
 {
-    public class AppointmentModel
+    public class Appointment
     {
         public int AppointmentId { get; set; }
 
@@ -11,5 +11,7 @@ namespace Appointment.API.Models
         public int SlotId { get; set; }
 
         public DateTime AppointmentDate { get; set; }
+
+        public string? Status { get; set; }   // ADD THIS
     }
 }

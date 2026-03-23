@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -13,16 +15,17 @@ margin:0;
 font-family:Segoe UI;
 }
 
-/* NAVBAR (YELLOW AREA FIX) */
+/* NAVBAR */
 
 .navbar-custom{
-position:absolute;
+position:fixed;
 top:0;
 width:100%;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:25px 120px;
+padding:20px 120px;
+background:#1e3a5f;
 z-index:100;
 }
 
@@ -34,20 +37,35 @@ color:white;
 
 .menu{
 display:flex;
-gap:40px;
+gap:30px;
 align-items:center;
 }
 
 .menu a{
 color:white;
 text-decoration:none;
-font-size:20px;
+font-size:18px;
+}
+
+.menu a:hover{
+text-decoration:underline;
 }
 
 .register-btn{
 border:2px solid white;
-padding:10px 25px;
+padding:8px 22px;
 border-radius:30px;
+}
+
+.username{
+color:white;
+font-size:18px;
+font-weight:500;
+}
+
+/* page spacing */
+.page-content{
+margin-top:100px;
 }
 
 </style>
@@ -59,24 +77,41 @@ border-radius:30px;
 <div class="navbar-custom">
 
 <div class="logo">
-YourLogo
+Doctor Appointment
 </div>
 
 <div class="menu">
 
 <a href="/Home/About">About Us</a>
-
 <a href="/Home/Privacy">Privacy</a>
-
 <a href="/Home/Contact">Contact Us</a>
 
-<a href="/Auth/Register" class="register-btn">Register</a>
+@{
+    var userId = Context.Session.GetInt32("UserId");
+    var userName = Context.Session.GetString("UserName");
+}
+
+@if(userId == null)
+{
+    <a href="/Auth/Login">Login</a>
+    <a href="/Auth/Register" class="register-btn">Register</a>
+}
+else
+{
+    <span class="username">
+        Welcome, @userName
+    </span>
+
+    <a href="/Auth/Logout" class="register-btn">Logout</a>
+}
 
 </div>
 
 </div>
 
-@RenderBody()
+<div class="page-content">
+    @RenderBody()
+</div>
 
 </body>
 </html>

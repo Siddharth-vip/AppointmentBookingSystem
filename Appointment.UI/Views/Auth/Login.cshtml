@@ -6,7 +6,11 @@ ViewBag.Title = "Login";
 
 <h2>Login</h2>
 
-<form method="post">
+<form asp-controller="Auth" asp-action="Login" method="post">
+
+@Html.AntiForgeryToken()
+
+<input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
 
 <div class="mb-3">
 <label>Email</label>
@@ -18,11 +22,9 @@ ViewBag.Title = "Login";
 <input type="password" name="password" class="form-control" />
 </div>
 
-<button class="btn btn-primary">Login</button>
+<button type="submit" class="btn btn-primary">Login</button>
 
-<a href="/Auth/Register" class="btn btn-link">
-Create Account
-</a>
+<a href="/Auth/Register" class="btn btn-link">Create Account</a>
 
 @if(ViewBag.Error != null)
 {

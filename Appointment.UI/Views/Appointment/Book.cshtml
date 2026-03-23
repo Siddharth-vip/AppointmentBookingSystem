@@ -14,73 +14,80 @@
 }
 else
 {
-
 <table class="table table-bordered">
 
-<thead>
-<tr>
-<th>Date</th>
-<th>Start Time</th>
-<th>End Time</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
 
-<tbody>
+    <tbody>
 
-@foreach (var slot in slots)
-{
-<tr>
+    @foreach (var slot in slots)
+    {
+        <tr>
 
-<td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
+          
 
-<td>@DateTime.Parse(slot.StartTime).ToString("hh:mm tt")</td>
+            <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
 
-<td>@DateTime.Parse(slot.EndTime).ToString("hh:mm tt")</td>
+            <td>@DateTime.Parse(slot.StartTime).ToString("hh:mm tt")</td>
 
-<td>
-@if (slot.IsBooked)
-{
-<span style="color:red;font-weight:bold">Booked</span>
-}
-else
-{
-<span style="color:green;font-weight:bold">Available</span>
-}
-</td>
+            <td>@DateTime.Parse(slot.EndTime).ToString("hh:mm tt")</td>
 
-<td>
+            <!-- 🔥 ADD THIS LINE -->
+            <td>@slot.SlotId</td>
 
-@if (!slot.IsBooked)
-{
-<form method="post" asp-action="BookAppointment">
 
-<input type="hidden" name="doctorId" value="@Model.DoctorId" />
-<input type="hidden" name="slotId" value="@slot.SlotId" />
+            <td>
+                @if (slot.IsBooked)
+                {
+                    <span class="text-danger fw-bold">Booked</span>
+                }
+                else
+                {
+                    <span class="text-success fw-bold">Available</span>
+                }
+            </td>
 
-<button type="submit" class="btn btn-success">
-Book Appointment
-</button>
+            <td>
+                @if (!slot.IsBooked)
+                {
+                    <form asp-controller="Appointment" asp-action="BookAppointment" method="post">
+
+    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+
+    <!-- 🔥 FORCE VALUE -->
+    <input type="hidden" name="slotId" value="@Convert.ToInt32(slot.SlotId)" />
+
+    <!-- DEBUG -->
+    <span style="display:none;">SlotId: @slot.SlotId</span>
+
+    <button type="submit" class="btn btn-success">
+        Book Appointment
+    </button>
 
 </form>
-}
-else
-{
-<button class="btn btn-secondary" disabled>
-Not Available
-</button>
-}
+                }
+                else
+                {
+                    <button class="btn btn-secondary" disabled>
+                        Not Available
+                    </button>
+                }
+            </td>
 
-</td>
+        </tr>
+    }
 
-</tr>
-}
-
-</tbody>
+    </tbody>
 
 </table>
-
 }
 
 <br/>

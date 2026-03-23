@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Appointment.API.Repository;
+using Appointment.API.Models;
 
 namespace Appointment.API.Controllers
 {
@@ -14,13 +15,21 @@ namespace Appointment.API.Controllers
             repo = new AppointmentRepository();
         }
 
-        // BOOK APPOINTMENT
+        // ===============================
+        // BOOK APPOINTMENT (FIXED)
+        // ===============================
         [HttpPost("book")]
-        public IActionResult BookAppointment(int userId, int doctorId, int slotId)
+        public IActionResult BookAppointment([FromBody] Appointment.API.Models.Appointment appointment)
         {
-            DateTime appointmentDate = DateTime.Now;
+            Console.WriteLine($"🔥 SlotId received: {appointment.SlotId}");
 
-            repo.BookAppointment(userId, doctorId, slotId, appointmentDate);
+            if (appointment.SlotId == 0)
+            {
+                return BadRequest("SlotId is 0 - Data not received properly");
+            }
+
+            // Save appointment
+            repo.BookAppointment(appointment);
 
             return Ok(new
             {
@@ -28,7 +37,9 @@ namespace Appointment.API.Controllers
             });
         }
 
+        // ===============================
         // GET ALL APPOINTMENTS
+        // ===============================
         [HttpGet("all")]
         public IActionResult GetAllAppointments()
         {
@@ -36,7 +47,9 @@ namespace Appointment.API.Controllers
             return Ok(list);
         }
 
+        // ===============================
         // USER APPOINTMENTS
+        // ===============================
         [HttpGet("user/{userId}")]
         public IActionResult GetUserAppointments(int userId)
         {
@@ -44,7 +57,9 @@ namespace Appointment.API.Controllers
             return Ok(list);
         }
 
+        // ===============================
         // DOCTOR APPOINTMENTS
+        // ===============================
         [HttpGet("doctor/{doctorId}")]
         public IActionResult GetDoctorAppointments(int doctorId)
         {

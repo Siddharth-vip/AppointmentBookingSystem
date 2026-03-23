@@ -1,15 +1,35 @@
-public async Task<IActionResult> Book(int doctorId)
-{
-    var userId = HttpContext.Session.GetInt32("UserId");
+@model User
 
-    if (userId == null)
-    {
-        return RedirectToAction("Login", "Auth");
-    }
+<div class="container mt-5">
 
-    ViewBag.DoctorId = doctorId;
+<h2>Register</h2>
 
-    var slots = await _apiService.GetAvailableSlotsAsync(doctorId);
+<form asp-controller="Auth" asp-action="Register" method="post">
 
-    return View(slots);
-}
+<div class="mb-3">
+<label>Name</label>
+<input asp-for="Name" class="form-control" required />
+</div>
+
+<div class="mb-3">
+<label>Email</label>
+<input asp-for="Email" class="form-control" required />
+</div>
+
+<div class="mb-3">
+<label>Password</label>
+<input asp-for="Password" type="password" class="form-control" required />
+</div>
+
+<div class="mb-3">
+<label>Phone Number</label>
+<input asp-for="Phone" class="form-control" required />
+</div>
+
+<button type="submit" class="btn btn-primary">Register</button>
+
+<a href="/Auth/Login" class="btn btn-link">Already have account? Login</a>
+
+</form>
+
+</div>

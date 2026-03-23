@@ -43,7 +43,6 @@ namespace Appointment.API.Repository
             return doctors;
         }
 
-
         // ======================================
         // GET AVAILABLE DOCTORS
         // ======================================
@@ -86,7 +85,6 @@ namespace Appointment.API.Repository
             return doctors;
         }
 
-
         // ======================================
         // GET TOTAL DOCTORS (ADMIN DASHBOARD)
         // ======================================
@@ -106,6 +104,40 @@ namespace Appointment.API.Repository
             }
 
             return total;
+        }
+
+        // ======================================
+        // 🔥 DOCTOR LOGIN (ADDED)
+        // ======================================
+        public Doctor? LoginDoctor(string email, string password)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = "SELECT * FROM Doctors WHERE Email=@Email AND Password=@Password";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.Parameters.AddWithValue("@Password", password);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    return new Doctor
+                    {
+                        DoctorId = Convert.ToInt32(reader["DoctorId"]),
+                        DoctorName = reader["DoctorName"].ToString(),
+                        Specialization = reader["Specialization"].ToString(),
+                        Experience = Convert.ToInt32(reader["Experience"]),
+                        Phone = reader["Phone"].ToString()
+                    };
+                }
+
+                return null;
+            }
         }
     }
 }

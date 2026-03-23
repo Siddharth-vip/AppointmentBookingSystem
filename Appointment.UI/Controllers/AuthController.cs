@@ -13,47 +13,81 @@ namespace Appointment.UI.Controllers
             _apiService = apiService;
         }
 
-        public IActionResult Login()
+        // ===============================
+        // LOGIN PAGE
+        // ===============================
+        public IActionResult Login(string? returnUrl = null)
         {
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
+        // ===============================
+        // LOGIN POST
+        // ===============================
         [HttpPost]
-        public async Task<IActionResult> Login(string email, string password)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(string email, string password, string? returnUrl = null)
         {
             var user = await _apiService.LoginUserAsync(email, password);
 
             if (user != null)
             {
+                // Save session values
                 HttpContext.Session.SetInt32("UserId", user.UserId);
                 HttpContext.Session.SetString("UserName", user.Name);
 
-                return RedirectToAction("Index", "Dashboard");
+                // If login came from booking page
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+
+                // Default redirect
+                return RedirectToAction("Index", "Home");
             }
 
-            ViewBag.Error = "Invalid login";
+            // Login failed
+            ViewBag.Error = "Invalid email or password";
+            ViewBag.ReturnUrl = returnUrl;
+
             return View();
         }
 
-
+        // ===============================
+        // REGISTER PAGE
+        // ===============================
         public IActionResult Register()
         {
             return View();
         }
 
+        // ===============================
+        // REGISTER POST
+        // ===============================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(User user)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(user);
+            }
+
             await _apiService.RegisterUserAsync(user);
 
             return RedirectToAction("Login");
         }
 
-
+        // ===============================
+        // LOGOUT (FIXED)
+        // ===============================
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
-            return RedirectToAction("Index", "Home");
+
+            // Always go to login page after logout
+            return RedirectToAction("Login");
         }
     }
 }

@@ -13,66 +13,66 @@ namespace Appointment.UI.Controllers
             api = apiService;
         }
 
-        // ===============================
-        // SHOW TIME SLOTS
-        // ===============================
         public async Task<IActionResult> Book(int doctorId)
-{
-    var slots = await api.GetTimeSlotsAsync(doctorId);
-
-    if (slots == null)
-        slots = new List<TimeSlot>();
-
-    ViewBag.Slots = slots;
-
-    var appointment = new Appointment.UI.Models.Appointment
-{
-    DoctorId = doctorId
-};
-
-    return View(appointment);
-}
-
-        // ===============================
-        // BOOK APPOINTMENT
-        // ===============================
-        [HttpPost]
-        public async Task<IActionResult> BookAppointment(int doctorId, int slotId)
         {
-            var email = HttpContext.Session.GetString("UserEmail");
+            var userId = HttpContext.Session.GetInt32("UserId");
 
-            // USER NOT LOGGED IN
-            if (string.IsNullOrEmpty(email))
+            if (userId == null)
             {
                 return RedirectToAction("Login", "Auth");
             }
 
-            var user = await api.GetUserByEmailAsync(email);
+            var slots = await api.GetTimeSlotsAsync(doctorId);
 
-            if (user == null)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
+            if (slots == null)
+                slots = new List<TimeSlot>();
 
-            // Create appointment object
+            ViewBag.Slots = slots;
+
             var appointment = new Appointment.UI.Models.Appointment
             {
-                UserId = user.UserId,
+                DoctorId = doctorId
+            };
+
+            return View(appointment);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> BookAppointment([FromForm] int doctorId, [FromForm] int slotId)
+        {
+            Console.WriteLine($"DoctorId: {doctorId}");
+            Console.WriteLine($"SlotId: {slotId}");
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Auth",
+                    new { returnUrl = Url.Action("Book", "Appointment", new { doctorId = doctorId }) });
+            }
+
+            if (slotId == 0)
+            {
+                TempData["ErrorMessage"] = "SlotId is 0. Something went wrong!";
+                return RedirectToAction("Book", new { doctorId = doctorId });
+            }
+
+            var appointment = new Appointment.UI.Models.Appointment
+            {
+                UserId = userId.Value,
                 DoctorId = doctorId,
                 SlotId = slotId,
                 AppointmentDate = DateTime.Now,
                 Status = "Booked"
             };
 
-            // Call API
             await api.BookAppointmentAsync(appointment);
 
-            return RedirectToAction("Confirmed");
+            TempData["SuccessMessage"] = "Appointment booked successfully!";
+
+            return RedirectToAction("Index", "Home");
         }
 
-        // ===============================
-        // CONFIRMATION PAGE
-        // ===============================
         public IActionResult Confirmed()
         {
             return View();

@@ -16,6 +16,26 @@ namespace Appointment.API.Controllers
         }
 
         // ==========================================
+        // 🔥 DOCTOR LOGIN (ADDED)
+        // api/doctor/login
+        // ==========================================
+        [HttpPost("login")]
+        public IActionResult Login([FromQuery] string email, [FromQuery] string password)
+        {
+            Console.WriteLine("🔥 DOCTOR LOGIN HIT");
+            Console.WriteLine("Email: " + email);
+
+            var doctor = repo.LoginDoctor(email, password);
+
+            if (doctor == null)
+            {
+                return BadRequest("Invalid credentials");
+            }
+
+            return Ok(doctor);
+        }
+
+        // ==========================================
         // GET ALL DOCTORS
         // api/doctor/all
         // ==========================================
@@ -32,10 +52,9 @@ namespace Appointment.API.Controllers
             return Ok(doctors);
         }
 
-
         // ==========================================
         // GET AVAILABLE DOCTORS
-        // api/doctor/available?date=2026-03-06&time=10:00:00
+        // api/doctor/available
         // ==========================================
         [HttpGet("available")]
         public IActionResult GetAvailableDoctors(DateTime date, TimeSpan time)

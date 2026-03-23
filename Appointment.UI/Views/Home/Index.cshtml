@@ -1,9 +1,17 @@
-﻿@{
+﻿@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success text-center" role="alert">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@{
     ViewData["Title"] = "Home";
 }
 
 <div class="hero-container">
 
+    <!-- LEFT SIDE -->
     <div class="hero-left">
 
         <h1 class="hero-title">
@@ -25,13 +33,16 @@
     </div>
 
 
+    <!-- RIGHT SIDE -->
     <div class="hero-right">
 
+        <!-- ✅ FIXED FORM -->
         <form method="post" action="/Doctor/CheckAvailability" class="appointment-card">
 
             <h3>Select a date</h3>
 
             <input type="date"
+                   id="date"
                    name="date"
                    class="form-control"
                    required />
@@ -40,10 +51,14 @@
             <h3>Select a time</h3>
 
             <input type="time"
+                   id="time"
                    name="time"
                    class="form-control"
                    required />
 
+            <!-- ✅ OPTIONAL (future safe) -->
+            <input type="hidden" id="slotId" name="slotId" />
+            <input type="hidden" id="doctorId" name="doctorId" />
 
             <button type="submit" class="book-btn">
                 Book now
@@ -63,7 +78,6 @@ body{
     font-family:Segoe UI;
 }
 
-
 /* HERO SECTION */
 
 .hero-container{
@@ -73,7 +87,6 @@ body{
     justify-content:space-around;
     background:linear-gradient(120deg,#6a5acd,#7b68ee);
 }
-
 
 /* LEFT SIDE */
 
@@ -92,8 +105,7 @@ body{
     font-size:18px;
 }
 
-
-/* LEARN MORE BUTTON */
+/* BUTTONS */
 
 .learn-btn{
     display:inline-block;
@@ -105,9 +117,6 @@ body{
     text-decoration:none;
     font-size:18px;
 }
-
-
-/* FIND DOCTOR BUTTON */
 
 .find-btn{
     display:inline-block;
@@ -122,13 +131,11 @@ body{
     font-weight:bold;
 }
 
-
-/* RIGHT SIDE CARD */
+/* RIGHT SIDE */
 
 .hero-right{
     width:30%;
 }
-
 
 .appointment-card{
     background:white;
@@ -137,7 +144,6 @@ body{
     text-align:center;
     box-shadow:0px 8px 25px rgba(0,0,0,0.2);
 }
-
 
 /* INPUT */
 
@@ -151,8 +157,7 @@ body{
     font-size:16px;
 }
 
-
-/* BOOK BUTTON */
+/* BUTTON */
 
 .book-btn{
     width:100%;
@@ -170,3 +175,12 @@ body{
 }
 
 </style>
+
+
+<!-- ✅ OPTIONAL DEBUG SCRIPT -->
+<script>
+document.querySelector("form").addEventListener("submit", function () {
+    console.log("Date:", document.getElementById("date").value);
+    console.log("Time:", document.getElementById("time").value);
+});
+</script>

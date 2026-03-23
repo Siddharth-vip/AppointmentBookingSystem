@@ -72,5 +72,43 @@ namespace Appointment.API.Repository
 
             return total;
         }
+
+        public bool CreateSlot(TimeSlot slot)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = @"INSERT INTO TimeSlots (DoctorId, SlotDate, StartTime, EndTime, IsBooked)
+                                 VALUES (@DoctorId, @SlotDate, @StartTime, @EndTime, 0)";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@DoctorId", slot.DoctorId);
+                cmd.Parameters.AddWithValue("@SlotDate", slot.SlotDate.Date);
+                cmd.Parameters.AddWithValue("@StartTime", slot.StartTime);
+                cmd.Parameters.AddWithValue("@EndTime", slot.EndTime);
+
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+
+        public bool DeleteSlot(int slotId, int doctorId)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = @"DELETE FROM TimeSlots
+                                 WHERE SlotId = @SlotId
+                                 AND DoctorId = @DoctorId
+                                 AND IsBooked = 0";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@SlotId", slotId);
+                cmd.Parameters.AddWithValue("@DoctorId", doctorId);
+
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
     }
 }

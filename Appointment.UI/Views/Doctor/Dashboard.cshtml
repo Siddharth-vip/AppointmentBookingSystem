@@ -1,0 +1,143 @@
+@model DoctorDashboardViewModel
+
+@{
+    ViewData["Title"] = "Doctor Dashboard";
+}
+
+<div class="container mt-4">
+    <h2>Doctor Dashboard</h2>
+
+    @if (TempData["DoctorSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["DoctorSuccess"]</div>
+    }
+
+    @if (TempData["DoctorError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["DoctorError"]</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">Create Future Slot</div>
+        <div class="card-body">
+            <form asp-controller="Doctor" asp-action="CreateSlot" method="post" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="slotDate" class="form-control" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Start Time</label>
+                    <input type="time" name="startTime" class="form-control" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Time</label>
+                    <input type="time" name="endTime" class="form-control" required />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Create Slot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Your Slots</div>
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Slot ID</th>
+                        <th>Date</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Slots.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center">No slots created yet.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var slot in Model.Slots)
+                    {
+                        <tr>
+                            <td>@slot.SlotId</td>
+                            <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
+                            <td>@slot.StartTime</td>
+                            <td>@slot.EndTime</td>
+                            <td>
+                                @if (slot.IsBooked)
+                                {
+                                    <span class="badge bg-danger">Booked</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Available</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!slot.IsBooked)
+                                {
+                                    <form asp-controller="Doctor" asp-action="DeleteSlot" method="post" style="display:inline;">
+                                        <input type="hidden" name="slotId" value="@slot.SlotId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Locked</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Booked Patients</div>
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Appointment ID</th>
+                        <th>Patient</th>
+                        <th>Email</th>
+                        <th>Slot Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Appointments.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center">No bookings yet.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var appointment in Model.Appointments)
+                    {
+                        <tr>
+                            <td>@appointment.AppointmentId</td>
+                            <td>@appointment.PatientName</td>
+                            <td>@appointment.PatientEmail</td>
+                            <td>@appointment.SlotDate.ToString("dd-MM-yyyy")</td>
+                            <td>@appointment.StartTime - @appointment.EndTime</td>
+                            <td>@appointment.Status</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

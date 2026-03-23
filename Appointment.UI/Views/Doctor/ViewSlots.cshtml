@@ -28,7 +28,7 @@
 
         <td>@slot.SlotId</td>
 
-        <td>@slot.SlotDate</td>
+        <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
 
         <td>@slot.StartTime</td>
 
@@ -50,15 +50,19 @@
         </td>
 
         <td>
-
             @if (!slot.IsBooked)
             {
-                <a asp-controller="Appointment"
-   asp-action="Book"
-   asp-route-slotId="@slot.SlotId"
-   class="btn btn-success">
-   Book Appointment
-</a>
+                <!-- ✅ FIX: Use FORM instead of <a> -->
+                <form asp-controller="Appointment" asp-action="BookAppointment" method="post" style="display:inline;">
+                    
+                    <!-- 🔥 VERY IMPORTANT -->
+                    <input type="hidden" name="slotId" value="@slot.SlotId" />
+                    <input type="hidden" name="doctorId" value="@slot.DoctorId" />
+
+                    <button type="submit" class="btn btn-success">
+                        Book Appointment
+                    </button>
+                </form>
             }
             else
             {
@@ -66,7 +70,6 @@
                     Not Available
                 </button>
             }
-
         </td>
 
     </tr>
