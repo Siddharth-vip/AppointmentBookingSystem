@@ -1,0 +1,444 @@
+================================================================================
+SSMS QUICK REFERENCE GUIDE - APPOINTMENT BOOKING SYSTEM
+================================================================================
+
+This guide helps you use the complete schema file in SQL Server Management Studio (SSMS).
+
+================================================================================
+1. HOW TO SETUP DATABASE IN SSMS
+================================================================================
+
+STEP 1: Open SQL Server Management Studio
+  - Launch SSMS
+  - Connect to your SQL Server (usually "localhost" or your server name)
+
+STEP 2: Create New Query
+  - Click File > New > Query with Current Connection
+  - Or press CTRL + N
+
+STEP 3: Open the Schema File
+  - Click File > Open > File
+  - Navigate to: Database_Schema_Complete.sql
+  - Open it
+
+STEP 4: Execute the Script
+  - Select all code: CTRL + A
+  - Execute: F5 or Ctrl + E
+  - Or click Execute button in toolbar
+
+EXPECTED OUTPUT:
+  ✅ Database AppointmentDB created successfully.
+  ✅ Table Users created successfully.
+  ✅ Table Doctors created successfully.
+  ✅ Table TimeSlots created successfully.
+  ✅ Table Appointments created successfully.
+  ✅ Sample users inserted.
+  ✅ Sample doctors inserted.
+  ✅ Standard slots created for Doctor 1 on [date]
+  ... (and more success messages)
+
+================================================================================
+2. DATABASE STRUCTURE AT A GLANCE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         APPOINTMENT DATABASE                     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌────────────────┐         ┌──────────────┐
+│    USERS       │         │   DOCTORS    │
+├────────────────┤         ├──────────────┤
+│ UserId (PK)    │         │ DoctorId(PK) │
+│ Name           │         │ DoctorName   │
+│ Email (UNIQUE) │         │ Specializ.   │
+│ Password       │         │ Experience   │
+│ Phone          │         │ Phone        │
+│ CreatedDate    │         │ Email        │
+│ Role           │         │ Password     │
+│ IsActive       │         │ IsActive     │
+└────────────────┘         └──────────────┘
+         ▲                           ▲
+         │                           │
+         │ UserId (FK)               │ DoctorId (FK)
+         │                           │
+    ┌────┴───────────────────────────┴────┐
+    │                                      │
+    │        APPOINTMENTS                  │
+    ├──────────────────────────────────────┤
+    │ AppointmentId (PK)                   │
+    │ UserId (FK) ────────> links to USER  │
+    │ DoctorId (FK) ──────> links to DOC   │
+    │ SlotId (FK) ──────── links to SLOT   │
+    │ AppointmentDate                      │
+    │ Status                               │
+    │ CreatedDate                          │
+    └──────────────┬───────────────────────┘
+                   │
+                   │ SlotId (FK)
+                   │
+         ┌─────────▼──────────┐
+         │   TIME SLOTS       │
+         ├────────────────────┤
+         │ SlotId (PK)        │
+         │ DoctorId (FK)      │
+         │ SlotDate           │
+         │ StartTime          │
+         │ EndTime            │
+         │ IsBooked (0/1)     │
+         │ CreatedDate        │
+         └────────────────────┘
+
+KEY RELATIONSHIPS:
+  - 1 User can have MANY Appointments
+  - 1 Doctor can have MANY Appointments
+  - 1 Doctor can have MANY TimeSlots
+  - 1 TimeSlot can have 1 Appointment
+
+================================================================================
+3. TABLE COLUMNS EXPLAINED
+================================================================================
+
+USERS TABLE:
+  UserId............. Unique ID (Auto-increment)
+  Name............... Full name of the user
+  Email.............. Email address (must be unique)
+  Password........... Hashed password
+  Phone.............. Contact number (optional)
+  CreatedDate........ When user registered
+  Role............... "User" or "Admin"
+  IsActive........... 1 = Active, 0 = Inactive
+
+DOCTORS TABLE:
+  DoctorId........... Unique ID (Auto-increment)
+  DoctorName......... Full name of doctor
+  Email.............. Doctor's email (must be unique)
+  Password........... Hashed password
+  Specialization..... e.g., "Cardiologist", "Dentist", "Dermatologist"
+  Experience......... Years of experience
+  Phone.............. Contact number
+  IsActive........... 1 = Active, 0 = Inactive
+  CreatedDate........ When doctor registered
+
+TIME SLOTS TABLE:
+  SlotId............. Unique ID (Auto-increment)
+  DoctorId........... Which doctor (Foreign Key → Doctors)
+  SlotDate........... Date of appointment (YYYY-MM-DD format)
+  StartTime.......... Appointment start (HH:MM:SS)
+  EndTime............ Appointment end (HH:MM:SS)
+  IsBooked........... 0 = Available, 1 = Booked/Unavailable
+  CreatedDate........ When slot was created
+
+APPOINTMENTS TABLE:
+  AppointmentId...... Unique ID (Auto-increment)
+  UserId............. Who booked (Foreign Key → Users)
+  DoctorId........... Which doctor (Foreign Key → Doctors)
+  SlotId............. Which time slot (Foreign Key → TimeSlots)
+  AppointmentDate.... When appointment was booked
+  Status............. "Booked", "Doctor Unavailable", "Reschedule Suggested"
+  CreatedDate........ When record was created
+  UpdatedDate........ When record was last updated
+
+================================================================================
+4. STANDARD APPOINTMENT SLOTS
+================================================================================
+
+The system uses 1-hour appointment slots:
+
+TIME SLOT SCHEDULE (Default):
+  Slot 1:  10:00 AM - 11:00 AM
+  Slot 2:  11:00 AM - 12:00 PM
+  Slot 3:  01:00 PM - 02:00 PM
+  Slot 4:  02:00 PM - 03:00 PM
+  Slot 5:  03:00 PM - 04:00 PM
+  Slot 6:  04:00 PM - 05:00 PM
+
+Total: 6 slots per doctor per day
+
+APPOINTMENT STATUSES:
+  "Booked" .................. Normal booked appointment
+  "Doctor Unavailable" ...... Doctor marked slot as unavailable
+  "Reschedule Suggested" .... Suggested reschedule
+  "Not Available" ........... Slot not available
+  (NULL or empty) ........... Treated as "Booked"
+
+================================================================================
+5. ESSENTIAL SQL QUERIES (COPY & PASTE READY)
+================================================================================
+
+--- USER QUERIES ---
+
+-- Register a new user
+INSERT INTO Users (Name, Email, Password, Phone, CreatedDate, Role)
+VALUES ('John Doe', 'john@gmail.com', 'hashedPassword123', '9876543210', GETDATE(), 'User');
+
+-- Login user (check credentials)
+SELECT TOP 1 * FROM Users 
+WHERE Email = 'john@gmail.com' AND Password = 'hashedPassword123';
+
+-- Find user by email
+SELECT * FROM Users WHERE Email = 'john@gmail.com';
+
+-- Get all users
+SELECT * FROM Users WHERE Role = 'User' ORDER BY CreatedDate DESC;
+
+-- Update user password
+UPDATE Users SET Password = 'newHashedPassword' WHERE UserId = 1;
+
+-- Deactivate user
+UPDATE Users SET IsActive = 0 WHERE UserId = 1;
+
+--- DOCTOR QUERIES ---
+
+-- Get all doctors
+SELECT * FROM Doctors ORDER BY DoctorName;
+
+-- Get doctors by specialization
+SELECT * FROM Doctors WHERE Specialization = 'Cardiologist';
+
+-- Get doctor with experience > 10 years
+SELECT * FROM Doctors WHERE Experience > 10;
+
+-- Get available doctors for a specific date/time
+SELECT DISTINCT d.*
+FROM Doctors d
+JOIN TimeSlots t ON d.DoctorId = t.DoctorId
+WHERE t.SlotDate = '2026-03-25' 
+  AND CAST('14:00:00' AS TIME) BETWEEN t.StartTime AND t.EndTime 
+  AND t.IsBooked = 0;
+
+--- TIME SLOT QUERIES ---
+
+-- Get all available slots for a doctor
+SELECT * FROM TimeSlots 
+WHERE DoctorId = 1 AND IsBooked = 0 AND SlotDate >= CAST(GETDATE() AS DATE)
+ORDER BY SlotDate, StartTime;
+
+-- Get slots for a specific date
+SELECT * FROM TimeSlots 
+WHERE DoctorId = 1 AND SlotDate = '2026-03-25'
+ORDER BY StartTime;
+
+-- Create slots for a doctor (manual)
+INSERT INTO TimeSlots (DoctorId, SlotDate, StartTime, EndTime, IsBooked)
+VALUES (1, '2026-03-26', '10:00:00', '11:00:00', 0);
+
+-- Mark slot as booked
+UPDATE TimeSlots SET IsBooked = 1 WHERE SlotId = 5;
+
+-- Create standard slots for a doctor and date
+EXEC sp_CreateStandardSlots @DoctorId = 1, @SlotDate = '2026-03-26';
+
+--- APPOINTMENT QUERIES ---
+
+-- Book an appointment (transactional in app, but here's the flow)
+INSERT INTO Appointments (UserId, DoctorId, SlotId, AppointmentDate, Status)
+VALUES (1, 1, 5, GETDATE(), 'Booked');
+
+UPDATE TimeSlots SET IsBooked = 1 WHERE SlotId = 5;
+
+-- Get user's appointments with doctor details
+SELECT 
+    a.AppointmentId,
+    a.AppointmentDate,
+    d.DoctorName,
+    d.Specialization,
+    t.SlotDate,
+    t.StartTime,
+    t.EndTime,
+    a.Status
+FROM Appointments a
+INNER JOIN Doctors d ON a.DoctorId = d.DoctorId
+INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+WHERE a.UserId = 1
+ORDER BY t.SlotDate DESC;
+
+-- Get doctor's appointments with patient details
+SELECT 
+    a.AppointmentId,
+    u.Name AS PatientName,
+    u.Email, u.Phone,
+    t.SlotDate,
+    t.StartTime,
+    t.EndTime,
+    a.Status
+FROM Appointments a
+INNER JOIN Users u ON a.UserId = u.UserId
+INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+WHERE a.DoctorId = 1 AND t.SlotDate = CAST(GETDATE() AS DATE)
+ORDER BY t.StartTime;
+
+-- Get all appointments (admin view)
+SELECT 
+    a.AppointmentId,
+    u.Name AS UserName,
+    d.DoctorName,
+    t.SlotDate,
+    t.StartTime,
+    a.Status,
+    a.AppointmentDate
+FROM Appointments a
+INNER JOIN Users u ON a.UserId = u.UserId
+INNER JOIN Doctors d ON a.DoctorId = d.DoctorId
+INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+ORDER BY a.AppointmentDate DESC;
+
+-- Cancel an appointment
+DELETE FROM Appointments WHERE AppointmentId = 5;
+UPDATE TimeSlots SET IsBooked = 0 WHERE SlotId = 5;
+
+-- Mark slot unavailable (with notification)
+EXEC sp_MarkSlotUnavailable @DoctorId = 1, @SlotId = 5, @Reason = 'Doctor Unavailable';
+
+================================================================================
+6. USEFUL ADMIN QUERIES
+================================================================================
+
+--- REPORTS ---
+
+-- Total appointments by status
+SELECT Status, COUNT(*) AS Count FROM Appointments GROUP BY Status;
+
+-- Doctor productivity (booked appointments)
+SELECT 
+    d.DoctorName,
+    COUNT(a.AppointmentId) AS TotalAppointments
+FROM Doctors d
+LEFT JOIN Appointments a ON d.DoctorId = a.DoctorId
+GROUP BY d.DoctorId, d.DoctorName
+ORDER BY TotalAppointments DESC;
+
+-- User booking history
+SELECT 
+    u.Name,
+    COUNT(a.AppointmentId) AS Bookings,
+    MAX(a.AppointmentDate) AS LastBooking
+FROM Users u
+LEFT JOIN Appointments a ON u.UserId = a.UserId
+WHERE u.Role = 'User'
+GROUP BY u.UserId, u.Name
+ORDER BY Bookings DESC;
+
+-- Available slots overview
+SELECT 
+    SlotDate,
+    COUNT(*) AS TotalSlots,
+    COUNT(CASE WHEN IsBooked = 0 THEN 1 END) AS Available,
+    COUNT(CASE WHEN IsBooked = 1 THEN 1 END) AS Booked
+FROM TimeSlots
+WHERE SlotDate >= CAST(GETDATE() AS DATE)
+GROUP BY SlotDate
+ORDER BY SlotDate;
+
+--- DATA VALIDATION ---
+
+-- Find broken appointments (missing references)
+SELECT a.AppointmentId FROM Appointments a
+LEFT JOIN Users u ON a.UserId = u.UserId
+LEFT JOIN Doctors d ON a.DoctorId = d.DoctorId
+LEFT JOIN TimeSlots t ON a.SlotId = t.SlotId
+WHERE u.UserId IS NULL OR d.DoctorId IS NULL OR t.SlotId IS NULL;
+
+-- Check for duplicate user emails
+SELECT Email, COUNT(*) FROM Users GROUP BY Email HAVING COUNT(*) > 1;
+
+================================================================================
+7. COMMON TASKS & HOW TO DO THEM
+================================================================================
+
+TASK: Add a new doctor
+  EXEC sp_CreateStandardSlots @DoctorId = 5, @SlotDate = CAST(GETDATE() AS DATE);
+  -- Then run the stored procedure for each future date needed
+
+TASK: Create slots for next 30 days for all doctors
+  DECLARE @i INT = 0;
+  WHILE @i < 30
+  BEGIN
+    EXEC sp_CreateStandardSlots 1, DATEADD(DAY, @i, CAST(GETDATE() AS DATE));
+    EXEC sp_CreateStandardSlots 2, DATEADD(DAY, @i, CAST(GETDATE() AS DATE));
+    EXEC sp_CreateStandardSlots 3, DATEADD(DAY, @i, CAST(GETDATE() AS DATE));
+    EXEC sp_CreateStandardSlots 4, DATEADD(DAY, @i, CAST(GETDATE() AS DATE));
+    SET @i = @i + 1;
+  END
+
+TASK: Mark doctor unavailable for a specific date
+  UPDATE TimeSlots 
+  SET IsBooked = 1 
+  WHERE DoctorId = 1 AND SlotDate = '2026-03-26';
+
+TASK: Reassign appointments (move from wrong doctor)
+  UPDATE Appointments 
+  SET DoctorId = 2 
+  WHERE AppointmentId = 5;
+
+TASK: Clean up old data
+  DELETE FROM Appointments WHERE AppointmentDate < DATEADD(MONTH, -6, GETDATE());
+  DELETE FROM TimeSlots WHERE SlotDate < CAST(GETDATE() AS DATE) AND IsBooked = 0;
+
+TASK: Check database size
+  SELECT 
+    (SUM(CAST(size AS INT)) * 8.0 / 1024) AS TotalSize_MB
+  FROM sys.database_files;
+
+TASK: Backup database
+  -- In SSMS, right-click database → Tasks → Back Up
+
+================================================================================
+8. TROUBLESHOOTING
+================================================================================
+
+ISSUE: "Cannot insert appointment - Slot not found"
+  CAUSE: The SlotId doesn't exist or belongs to wrong doctor
+  FIX: Verify SlotId exists: SELECT * FROM TimeSlots WHERE SlotId = @SlotId;
+
+ISSUE: "Duplicate email error"
+  CAUSE: User/Doctor email already exists
+  FIX: Use different email or update existing record
+
+ISSUE: "Foreign key constraint fails"
+  CAUSE: Trying to delete a record that's referenced by other records
+  FIX: Delete child records first (e.g., delete from Appointments before deleting User)
+
+ISSUE: "Query returns no results"
+  CAUSE: Data filtering might be too strict
+  FIX: Remove WHERE conditions step by step to find the issue
+
+ISSUE: Stored procedure not found
+  CAUSE: Script wasn't executed or procedure was dropped
+  FIX: Re-run the schema script to recreate procedures
+
+================================================================================
+9. QUICK LINKS & FILE LOCATIONS
+================================================================================
+
+Schema File:        Database_Schema_Complete.sql
+Connection String:  Server=localhost;Database=AppointmentDB;Trusted_Connection=True;
+Database Name:      AppointmentDB
+Tables:             Users, Doctors, TimeSlots, Appointments
+Procedures:         sp_CreateStandardSlots, sp_MarkSlotUnavailable
+
+================================================================================
+10. NEXT STEPS AFTER SETUP
+================================================================================
+
+1. ✅ Run Database_Schema_Complete.sql to create database
+2. ✅ Verify tables: Object Explorer → AppointmentDB → Tables
+3. ✅ Create slots for future dates: EXEC sp_CreateStandardSlots @DoctorId=1, @SlotDate='2026-03-30';
+4. ✅ Test a booking: INSERT INTO Appointments ... (see samples above)
+5. ✅ Verify appointment: SELECT * FROM Appointments;
+6. ✅ Connect application to database (check connection string)
+7. ✅ Run application tests
+
+================================================================================
+HELP NEEDED?
+================================================================================
+
+For any query or procedure execution:
+  1. Open a NEW Query window (Ctrl + N)
+  2. Copy the query from sections above
+  3. Replace @Parameters with actual values
+  4. Execute (F5)
+  5. Check Results tab
+
+Good luck with your Appointment Booking System! 🎯
+
+================================================================================

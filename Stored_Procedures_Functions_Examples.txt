@@ -1,0 +1,654 @@
+================================================================================
+STORED PROCEDURES, FUNCTIONS & DETAILED EXAMPLES
+================================================================================
+
+================================================================================
+1. STORED PROCEDURES
+================================================================================
+
+PROCEDURE #1: sp_CreateStandardSlots
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Create standard 1-hour appointment slots for a doctor on a specific date
+
+SYNTAX:
+  EXEC sp_CreateStandardSlots @DoctorId = 1, @SlotDate = '2026-03-26'
+
+PARAMETERS:
+  @DoctorId INT ............ Doctor ID (required)
+  @SlotDate DATE ........... Date for slots (required)
+
+WHAT IT DOES:
+  1. Checks if slots already exist for that date/doctor
+  2. If not, creates 6 standard slots:
+     - 10:00-11:00 AM
+     - 11:00 AM-12:00 PM
+     - 01:00-02:00 PM
+     - 02:00-03:00 PM
+     - 03:00-04:00 PM
+     - 04:00-05:00 PM
+  3. Sets all slots as "available" (IsBooked = 0)
+  4. Returns success/failure message
+
+EXAMPLE #1: Create slots for Dr. Sharma tomorrow
+  EXEC sp_CreateStandardSlots @DoctorId = 1, @SlotDate = '2026-03-26'
+  
+  OUTPUT:
+  Standard slots created for Doctor 1 on 2026-03-26
+
+EXAMPLE #2: Create slots for all doctors for next 7 days
+  DECLARE @i INT = 0;
+  WHILE @i < 7
+  BEGIN
+      DECLARE @currentDate DATE = DATEADD(DAY, @i, CAST(GETDATE() AS DATE));
+      
+      EXEC sp_CreateStandardSlots @DoctorId = 1, @SlotDate = @currentDate;
+      EXEC sp_CreateStandardSlots @DoctorId = 2, @SlotDate = @currentDate;
+      EXEC sp_CreateStandardSlots @DoctorId = 3, @SlotDate = @currentDate;
+      EXEC sp_CreateStandardSlots @DoctorId = 4, @SlotDate = @currentDate;
+      
+      SET @i = @i + 1;
+  END;
+  
+  OUTPUT:
+  Standard slots created for Doctor 1 on 2026-03-25
+  Standard slots created for Doctor 2 on 2026-03-25
+  Standard slots created for Doctor 3 on 2026-03-25
+  Standard slots created for Doctor 4 on 2026-03-25
+  Standard slots created for Doctor 1 on 2026-03-26
+  ... (and so on)
+
+PREREQUISITE: Doctor must exist in Doctors table
+
+
+PROCEDURE #2: sp_MarkSlotUnavailable
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Mark a time slot as unavailable and notify affected users
+
+SYNTAX:
+  EXEC sp_MarkSlotUnavailable @DoctorId = 1, @SlotId = 5, @Reason = 'Doctor Unavailable'
+
+PARAMETERS:
+  @DoctorId INT ............ Doctor ID (required)
+  @SlotId INT ............. Slot ID (required)
+  @Reason NVARCHAR(255) ... Reason for unavailability (optional, default: 'Doctor Unavailable')
+
+WHAT IT DOES:
+  1. Finds all users with appointments in that slot
+  2. Updates their appointments' status to the reason provided
+  3. Marks the slot as booked to prevent new bookings
+  4. Returns list of affected users (name and phone)
+  5. Application uses this list to send SMS/Email notifications
+
+RETURNS:
+  AppointmentId, UserId, UserName, UserPhone (affected users)
+
+EXAMPLE #1: Mark slot 5 unavailable (Dr. Sharma has emergency)
+  EXEC sp_MarkSlotUnavailable @DoctorId = 1, @SlotId = 5
+  
+  OUTPUT:
+  AppointmentId | UserId | UserName    | UserPhone
+  1             | 1      | John Doe    | 9876543210
+  2             | 2      | Jane Smith  | 9876543211
+  
+  (Application then sends SMS to both users)
+
+EXAMPLE #2: Mark unavailable with custom reason
+  EXEC sp_MarkSlotUnavailable @DoctorId = 1, @SlotId = 5, @Reason = 'Doctor Conference'
+  
+  OUTPUT: (same as above)
+  
+  APPLICATION: Updates appointments' status to "Doctor Conference" instead
+
+PREREQUISITE: Doctor and Slot must exist; Slot must have appointments to notify
+
+IMPORTANT: If no users are affected (slot not booked), procedure still marks it unavailable
+
+
+================================================================================
+2. VIEWS (USEFUL FOR REPORTS)
+================================================================================
+
+VIEW #1: Complete Appointment Summary
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: See all appointment details with user, doctor, and slot info in one view
+
+CODE:
+  CREATE VIEW vw_AppointmentSummary AS
+  SELECT 
+      a.AppointmentId,
+      u.Name AS UserName,
+      u.Email AS UserEmail,
+      u.Phone AS UserPhone,
+      d.DoctorName,
+      d.Specialization,
+      d.Phone AS DoctorPhone,
+      t.SlotDate,
+      t.StartTime,
+      t.EndTime,
+      a.Status,
+      a.AppointmentDate,
+      a.CreatedDate
+  FROM Appointments a
+  INNER JOIN Users u ON a.UserId = u.UserId
+  INNER JOIN Doctors d ON a.DoctorId = d.DoctorId
+  INNER JOIN TimeSlots t ON a.SlotId = t.SlotId;
+
+USAGE:
+  SELECT * FROM vw_AppointmentSummary WHERE Status = 'Booked';
+  SELECT * FROM vw_AppointmentSummary WHERE DoctorName = 'Dr. Sharma';
+  SELECT * FROM vw_AppointmentSummary WHERE SlotDate = '2026-03-25';
+
+COLUMNS RETURNED:
+  AppointmentId, UserName, UserEmail, UserPhone, DoctorName, Specialization,
+  DoctorPhone, SlotDate, StartTime, EndTime, Status, AppointmentDate, CreatedDate
+
+
+VIEW #2: Doctor Daily Schedule
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: See which slots are booked and which are available for a specific date
+
+CODE:
+  CREATE VIEW vw_DoctorDailySchedule AS
+  SELECT 
+      d.DoctorId,
+      d.DoctorName,
+      t.SlotDate,
+      t.SlotId,
+      t.StartTime,
+      t.EndTime,
+      CASE WHEN t.IsBooked = 1 THEN 'BOOKED' ELSE 'AVAILABLE' END AS SlotStatus,
+      u.Name AS PatientName,
+      u.Phone AS PatientPhone,
+      a.Status AS AppointmentStatus
+  FROM Doctors d
+  LEFT JOIN TimeSlots t ON d.DoctorId = t.DoctorId
+  LEFT JOIN Appointments a ON t.SlotId = a.SlotId
+  LEFT JOIN Users u ON a.UserId = u.UserId
+  WHERE t.SlotDate >= CAST(GETDATE() AS DATE);
+
+USAGE:
+  -- Dr. Sharma's schedule for March 25
+  SELECT * FROM vw_DoctorDailySchedule 
+  WHERE DoctorId = 1 AND SlotDate = '2026-03-25'
+  ORDER BY StartTime;
+
+  OUTPUT:
+  DoctorId | DoctorName | SlotDate   | SlotId | StartTime | EndTime | SlotStatus | PatientName | PatientPhone | AppointmentStatus
+  1        | Dr. Sharma | 2026-03-25 | 1      | 10:00:00  | 11:00:00| AVAILABLE  | NULL        | NULL         | NULL
+  1        | Dr. Sharma | 2026-03-25 | 2      | 11:00:00  | 12:00:00| BOOKED     | John Doe    | 9876543210   | Booked
+  1        | Dr. Sharma | 2026-03-25 | 3      | 13:00:00  | 14:00:00| AVAILABLE  | NULL        | NULL         | NULL
+
+
+VIEW #3: User Booking History
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Track all bookings made by each user with doctor and status info
+
+CODE:
+  CREATE VIEW vw_UserBookingHistory AS
+  SELECT 
+      u.UserId,
+      u.Name AS UserName,
+      u.Email,
+      COUNT(a.AppointmentId) AS TotalBookings,
+      SUM(CASE WHEN a.Status = 'Booked' THEN 1 ELSE 0 END) AS ActiveBookings,
+      SUM(CASE WHEN a.Status = 'Doctor Unavailable' THEN 1 ELSE 0 END) AS CancelledCount,
+      MAX(a.AppointmentDate) AS LastBookingDate
+  FROM Users u
+  LEFT JOIN Appointments a ON u.UserId = a.UserId
+  WHERE u.Role = 'User'
+  GROUP BY u.UserId, u.Name, u.Email;
+
+USAGE:
+  SELECT * FROM vw_UserBookingHistory ORDER BY TotalBookings DESC;
+
+  OUTPUT (Top users):
+  UserId | UserName   | Email          | TotalBookings | ActiveBookings | CancelledCount | LastBookingDate
+  1      | John Doe   | john@gmail.com | 5             | 3              | 1              | 2026-03-20
+  2      | Jane Smith | jane@gmail.com | 3             | 2              | 1              | 2026-03-22
+
+================================================================================
+3. USER-DEFINED FUNCTIONS
+================================================================================
+
+FUNCTION #1: fn_GetDoctorAvailableSlotCount
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Get count of available slots for a doctor on a specific date
+
+SYNTAX:
+  SELECT dbo.fn_GetDoctorAvailableSlotCount(1, '2026-03-25') AS AvailableSlots
+
+PARAMETERS:
+  @DoctorId INT, @SlotDate DATE
+
+RETURNS: INT (count of available slots)
+
+CODE:
+  CREATE FUNCTION fn_GetDoctorAvailableSlotCount (
+      @DoctorId INT,
+      @SlotDate DATE
+  )
+  RETURNS INT
+  AS
+  BEGIN
+      DECLARE @Count INT = 0;
+      
+      SELECT @Count = COUNT(*)
+      FROM TimeSlots
+      WHERE DoctorId = @DoctorId
+      AND SlotDate = @SlotDate
+      AND IsBooked = 0;
+      
+      RETURN @Count;
+  END;
+
+USAGE:
+  -- How many slots does Dr. Sharma have available on March 25?
+  SELECT dbo.fn_GetDoctorAvailableSlotCount(1, '2026-03-25') AS AvailableSlots;
+  
+  OUTPUT:
+  AvailableSlots
+  4
+  (Means 4 out of 6 standard slots are available)
+
+  -- Get availability for all doctors
+  SELECT 
+      d.DoctorId,
+      d.DoctorName,
+      dbo.fn_GetDoctorAvailableSlotCount(d.DoctorId, '2026-03-25') AS AvailableSlots
+  FROM Doctors d
+  WHERE dbo.fn_GetDoctorAvailableSlotCount(d.DoctorId, '2026-03-25') > 0;
+
+
+FUNCTION #2: fn_GetUserUpcomingAppointmentCount
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Get count of upcoming appointments for a user
+
+SYNTAX:
+  SELECT dbo.fn_GetUserUpcomingAppointmentCount(1) AS UpcomingAppointments
+
+PARAMETERS:
+  @UserId INT
+
+RETURNS: INT (count of appointments)
+
+CODE:
+  CREATE FUNCTION fn_GetUserUpcomingAppointmentCount (
+      @UserId INT
+  )
+  RETURNS INT
+  AS
+  BEGIN
+      DECLARE @Count INT = 0;
+      
+      SELECT @Count = COUNT(*)
+      FROM Appointments a
+      INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+      WHERE a.UserId = @UserId
+      AND t.SlotDate >= CAST(GETDATE() AS DATE)
+      AND a.Status = 'Booked';
+      
+      RETURN @Count;
+  END;
+
+USAGE:
+  -- How many upcoming appointments does user 1 have?
+  SELECT dbo.fn_GetUserUpcomingAppointmentCount(1) AS UpcomingAppointments;
+  
+  OUTPUT:
+  UpcomingAppointments
+  3
+
+
+FUNCTION #3: fn_GetSlotAvailabilityStatus
+────────────────────────────────────────────────────────────────────────────
+
+PURPOSE: Get human-readable availability status for a slot
+
+SYNTAX:
+  SELECT dbo.fn_GetSlotAvailabilityStatus(1, '2026-03-25', '14:00:00') AS Status
+
+PARAMETERS:
+  @DoctorId INT, @SlotDate DATE, @StartTime TIME
+
+RETURNS: VARCHAR(50)
+
+CODE:
+  CREATE FUNCTION fn_GetSlotAvailabilityStatus (
+      @DoctorId INT,
+      @SlotDate DATE,
+      @StartTime TIME
+  )
+  RETURNS VARCHAR(50)
+  AS
+  BEGIN
+      DECLARE @Status VARCHAR(50);
+      DECLARE @IsBooked BIT;
+      
+      SELECT @IsBooked = IsBooked
+      FROM TimeSlots
+      WHERE DoctorId = @DoctorId
+      AND SlotDate = @SlotDate
+      AND StartTime = @StartTime;
+      
+      IF @IsBooked IS NULL
+          SET @Status = 'Does not exist'
+      ELSE IF @IsBooked = 0
+          SET @Status = 'Available'
+      ELSE
+          SET @Status = 'Booked';
+      
+      RETURN @Status;
+  END;
+
+USAGE:
+  SELECT 
+      d.DoctorName,
+      '2026-03-25' AS SlotDate,
+      '14:00:00' AS Time,
+      dbo.fn_GetSlotAvailabilityStatus(d.DoctorId, '2026-03-25', '14:00:00') AS Status
+  FROM Doctors d;
+
+================================================================================
+4. COMPREHENSIVE TRANSACTION EXAMPLE
+================================================================================
+
+BOOKING APPOINTMENT - STEP BY STEP WITH TRANSACTION
+─────────────────────────────────────────────────────
+
+CODE:
+  -- Input Parameters
+  DECLARE @UserId INT = 1
+  DECLARE @DoctorId INT = 1
+  DECLARE @SlotId INT = 5
+  DECLARE @AppointmentDate DATETIME = GETDATE()
+  DECLARE @Status NVARCHAR(50) = 'Booked'
+  
+  BEGIN TRANSACTION;
+  
+  BEGIN TRY
+      -- Step 1: Validate slot exists and is available
+      IF NOT EXISTS (SELECT 1 FROM TimeSlots WHERE SlotId = @SlotId AND DoctorId = @DoctorId)
+      BEGIN
+          RAISERROR('Slot not found', 16, 1);
+      END
+      
+      IF (SELECT IsBooked FROM TimeSlots WHERE SlotId = @SlotId) = 1
+      BEGIN
+          RAISERROR('Slot already booked', 16, 1);
+      END
+      
+      -- Step 2: Insert appointment
+      INSERT INTO Appointments (UserId, DoctorId, SlotId, AppointmentDate, Status)
+      VALUES (@UserId, @DoctorId, @SlotId, @AppointmentDate, @Status);
+      
+      PRINT 'Appointment inserted successfully';
+      
+      -- Step 3: Update slot to mark as booked
+      UPDATE TimeSlots
+      SET IsBooked = 1
+      WHERE SlotId = @SlotId;
+      
+      PRINT 'Time slot marked as booked';
+      
+      -- Step 4: Commit transaction
+      COMMIT TRANSACTION;
+      
+      PRINT 'BOOKING SUCCESSFUL - Transaction committed';
+      
+      -- Return success details
+      SELECT TOP 1 * FROM Appointments ORDER BY AppointmentId DESC;
+      
+  END TRY
+  BEGIN CATCH
+      -- Rollback on error
+      ROLLBACK TRANSACTION;
+      
+      PRINT 'BOOKING FAILED - Transaction rolled back'
+      PRINT ERROR_MESSAGE();
+      
+  END CATCH;
+
+OUTPUT (SUCCESS):
+  Appointment inserted successfully
+  Time slot marked as booked
+  BOOKING SUCCESSFUL - Transaction committed
+  AppointmentId | UserId | DoctorId | SlotId | AppointmentDate | Status
+  15            | 1      | 1        | 5      | 2026-03-25...   | Booked
+
+OUTPUT (FAILURE - Slot already booked):
+  BOOKING FAILED - Transaction rolled back
+  Slot already booked
+  (No changes made to database)
+
+KEY POINTS:
+  ✓ Uses transaction to ensure atomicity (all-or-nothing)
+  ✓ Validates before making changes
+  ✓ If any step fails, entire transaction rolls back
+  ✓ Prevents data inconsistency
+
+
+================================================================================
+5. BATCH OPERATIONS EXAMPLES
+================================================================================
+
+BATCH OPERATION #1: Create Slots for Multiple Doctors
+────────────────────────────────────────────────────────
+
+SCENARIO: New scheduling system - create slots for all doctors for next 60 days
+
+CODE:
+  DECLARE @DoctorId INT = 1;
+  DECLARE @SlotDate DATE;
+  DECLARE @Days INT = 0;
+  DECLARE @TotalDays INT = 60;
+  DECLARE @DoctorCount INT = (SELECT COUNT(*) FROM Doctors WHERE IsActive = 1);
+  
+  WHILE @Days < @TotalDays
+  BEGIN
+      SET @SlotDate = DATEADD(DAY, @Days, CAST(GETDATE() AS DATE));
+      
+      -- Create slots for each active doctor
+      DECLARE @CurrentDoctor INT = 1;
+      WHILE @CurrentDoctor <= @DoctorCount
+      BEGIN
+          EXEC sp_CreateStandardSlots @DoctorId = @CurrentDoctor, @SlotDate = @SlotDate;
+          SET @CurrentDoctor = @CurrentDoctor + 1;
+      END;
+      
+      SET @Days = @Days + 1;
+      
+      IF @Days % 10 = 0
+          PRINT 'Progress: ' + CAST(@Days AS VARCHAR) + '/' + CAST(@TotalDays AS VARCHAR) + ' days completed';
+  END;
+  
+  PRINT 'Batch creation complete!';
+
+EXECUTION TIME: ~2-3 minutes for 60 days x 4 doctors = 240 slot creation operations
+
+
+BATCH OPERATION #2: Reset Bookings for a Doctor
+─────────────────────────────────────────────────
+
+SCENARIO: Migration - need to clear all bookings and reset slots for Dr. Sharma
+
+CODE:
+  DECLARE @DoctorId INT = 1;
+  DECLARE @SlotDate DATE = CAST(GETDATE() AS DATE);
+  DECLARE @EndDate DATE = DATEADD(DAY, 30, @SlotDate);
+  
+  BEGIN TRANSACTION;
+  
+  -- Delete future appointments
+  DELETE FROM Appointments
+  WHERE DoctorId = @DoctorId
+  AND CreatedDate >= @SlotDate;
+  
+  PRINT 'Deleted ' + CAST(@@ROWCOUNT AS VARCHAR) + ' appointments';
+  
+  -- Reset slots (mark available)
+  UPDATE TimeSlots
+  SET IsBooked = 0
+  WHERE DoctorId = @DoctorId
+  AND SlotDate BETWEEN @SlotDate AND @EndDate;
+  
+  PRINT 'Reset ' + CAST(@@ROWCOUNT AS VARCHAR) + ' time slots';
+  
+  COMMIT TRANSACTION;
+
+AFFECTS:
+  - All appointments for Dr. Sharma in next 30 days are deleted
+  - All slots for Dr. Sharma in that period are marked available
+
+
+BATCH OPERATION #3: Notify Users About Changes
+──────────────────────────────────────────────────
+
+SCENARIO: Doctor cancelled appointments - build list for notification
+
+CODE:
+  DECLARE @DoctorId INT = 1;
+  DECLARE @NotificationDate DATE = '2026-03-25';
+  
+  -- Get affected users
+  SELECT 
+      a.AppointmentId,
+      u.UserId,
+      u.Name,
+      u.Phone,
+      u.Email,
+      d.DoctorName,
+      t.StartTime,
+      t.EndTime
+  FROM Appointments a
+  INNER JOIN Users u ON a.UserId = u.UserId
+  INNER JOIN Doctors d ON a.DoctorId = d.DoctorId
+  INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+  WHERE a.DoctorId = @DoctorId
+  AND t.SlotDate = @NotificationDate
+  AND a.Status = 'Booked'
+  ORDER BY u.Phone;
+
+OUTPUT:
+  AppointmentId | UserId | Name       | Phone      | Email           | DoctorName | StartTime | EndTime
+  1             | 1      | John Doe   | 9876543210 | john@gmail.com  | Dr. Sharma | 10:00:00  | 11:00:00
+  2             | 2      | Jane Smith | 9876543211 | jane@gmail.com  | Dr. Sharma | 11:00:00  | 12:00:00
+
+APPLICATION: Use this list to loop through and send SMS/Email
+
+
+================================================================================
+6. TROUBLESHOOTING QUERIES
+================================================================================
+
+ISSUE: "Appointment book failed - slot not found"
+─────────────────────────────────────────────────
+
+DIAGNOSTIC QUERY:
+  DECLARE @SlotId INT = 5;
+  DECLARE @DoctorId INT = 1;
+  
+  SELECT 
+      SlotId,
+      DoctorId,
+      SlotDate,
+      StartTime,
+      EndTime,
+      IsBooked,
+      'Exists' AS Status
+  FROM TimeSlots
+  WHERE SlotId = @SlotId AND DoctorId = @DoctorId;
+  
+  IF NOT EXISTS (SELECT 1 FROM TimeSlots WHERE SlotId = @SlotId)
+      PRINT 'ERROR: Slot ' + CAST(@SlotId AS VARCHAR) + ' does not exist in any doctor';
+
+OUTPUT:
+  SlotId | DoctorId | SlotDate   | StartTime | EndTime | IsBooked | Status
+  5      | 1        | 2026-03-25 | 14:00:00  | 15:00:00| 1        | Exists
+  
+  ISSUE: Slot is already booked (IsBooked = 1)
+
+
+ISSUE: Duplicate emails preventing new registration
+──────────────────────────────────────────────────────
+
+DIAGNOSTIC QUERY:
+  SELECT Email, COUNT(*) AS DuplicateCount
+  FROM Users
+  GROUP BY Email
+  HAVING COUNT(*) > 1;
+  
+  OUTPUT:
+  Email             | DuplicateCount
+  john@gmail.com    | 2
+  
+  FIX: Delete or update duplicate record
+
+
+ISSUE: Orphaned appointments (user not found)
+──────────────────────────────────────────────
+
+DIAGNOSTIC QUERY:
+  SELECT a.AppointmentId, a.UserId
+  FROM Appointments a
+  LEFT JOIN Users u ON a.UserId = u.UserId
+  WHERE u.UserId IS NULL;
+  
+  OUTPUT:
+  AppointmentId | UserId
+  10            | 999
+  
+  FIX: Either restore deleted user or delete orphaned appointment
+
+
+ISSUE: Slot bookings out of sync
+─────────────────────────────────
+
+DIAGNOSTIC QUERY:
+  -- Find slots marked as booked but with no appointment
+  SELECT t.SlotId, t.DoctorId, t.SlotDate, t.StartTime
+  FROM TimeSlots t
+  LEFT JOIN Appointments a ON t.SlotId = a.SlotId
+  WHERE t.IsBooked = 1 AND a.AppointmentId IS NULL;
+  
+  -- Mark them as available again
+  UPDATE TimeSlots
+  SET IsBooked = 0
+  WHERE SlotId IN (
+      SELECT t.SlotId
+      FROM TimeSlots t
+      LEFT JOIN Appointments a ON t.SlotId = a.SlotId
+      WHERE t.IsBooked = 1 AND a.AppointmentId IS NULL
+  );
+
+================================================================================
+SUMMARY
+================================================================================
+
+STORED PROCEDURES:
+  ✓ sp_CreateStandardSlots - Create 6 hourly slots for a doctor/date
+  ✓ sp_MarkSlotUnavailable - Mark slot unavailable and notify users
+
+VIEWS:
+  ✓ vw_AppointmentSummary - Complete appointment details
+  ✓ vw_DoctorDailySchedule - Doctor's schedule with patient info
+  ✓ vw_UserBookingHistory - User's booking statistics
+
+FUNCTIONS:
+  ✓ fn_GetDoctorAvailableSlotCount - Count available slots
+  ✓ fn_GetUserUpcomingAppointmentCount - Count user appointments
+  ✓ fn_GetSlotAvailabilityStatus - Get slot status
+
+KEY OPERATIONS:
+  ✓ Booking must use TRANSACTION (prevent double-booking)
+  ✓ Batch creation for bulk operations
+  ✓ Always validate before modifying data
+  ✓ Use diagnostic queries to troubleshoot issues
+
+================================================================================

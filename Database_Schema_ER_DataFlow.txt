@@ -1,0 +1,482 @@
+================================================================================
+DATABASE ENTITY-RELATIONSHIP & DATA FLOW DOCUMENTATION
+================================================================================
+
+================================================================================
+1. ENTITY RELATIONSHIP DIAGRAM (TEXT-BASED)
+================================================================================
+
+APPOINTMENT DATABASE STRUCTURE:
+
+        ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+        ┃       USERS TABLE         ┃
+        ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+        ┃ PK: UserId (INT)          ┃
+        ┃ -  Name (NVARCHAR)        ┃
+        ┃ -  Email (NVARCHAR)◄──────┼── UNIQUE CONSTRAINT
+        ┃ -  Password (NVARCHAR)    ┃
+        ┃ -  Phone (NVARCHAR)       ┃
+        ┃ -  CreatedDate (DATETIME) ┃
+        ┃ -  Role (NVARCHAR)        ┃ ─── "User" or "Admin"
+        ┃ -  IsActive (BIT)         ┃
+        ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                    ▲
+                    │ Foreign Key: UserId
+                    │ (1 User → Many Appointments)
+                    │
+        ┏━━━━━━━━━━━━┴━━━━━━━━━━━━━┓
+        ┃  APPOINTMENTS TABLE      ┃
+        ┗━━━━━━━━━━━━┬━━━━━━━━━━━━━┛
+        ┃ PK: AppointmentId(INT)   ┃
+        ┃ FK: UserId (INT)──────────┼──→ Links to USERS
+        ┃ FK: DoctorId (INT)────────┼──→ Links to DOCTORS
+        ┃ FK: SlotId (INT)──────────┼──→ Links to TIMESLOTS
+        ┃ -  AppointmentDate (DT)   ┃
+        ┃ -  Status (NVARCHAR)      ┃
+        ┃ -  CreatedDate (DATETIME) ┃
+        ┃ -  UpdatedDate (DATETIME) ┃
+        ┗━━━━━━━━━━━━┬━━━━━━━━━━━━━┛
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+    ┏━━━━━━━━━━━━━━┓      ┏━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ DOCTORS TBL  ┃      ┃  TIMESLOTS TABLE  ┃
+    ┗━━━━━━━━━━━━━━┛      ┗━━━━━━━━━━━━━━━━━━━━━┛
+    ┃ PK: DoctorId ┃      ┃ PK: SlotId (INT)  ┃
+    ┃ -  Name      ┃      ┃ FK: DoctorId ◄────┼── Links to DOCTORS
+    ┃ -  Specilzn  ┃      ┃ -  SlotDate       ┃
+    ┃ -  Exp Years ┃      ┃ -  StartTime      ┃
+    ┃ -  Phone     ┃      ┃ -  EndTime        ┃
+    ┃ -  Email     ┃      ┃ -  IsBooked (0/1) ┃
+    ┃ -  Password  ┃      ┃ -  CreatedDate    ┃
+    ┃ -  IsActive  ┃      ┗━━━━━━━━━━━━━━━━━━━━━┛
+    ┗━━━━━━━━━━━━━━┛
+
+KEY CONSTRAINTS:
+  ✓ Users.Email → UNIQUE (no duplicate emails)
+  ✓ Doctors.Email → UNIQUE (no duplicate emails)
+  ✓ Appointments.UserId → FOREIGN KEY → Users(UserId) → ON DELETE CASCADE
+  ✓ Appointments.DoctorId → FOREIGN KEY → Doctors(DoctorId) → ON DELETE CASCADE
+  ✓ Appointments.SlotId → FOREIGN KEY → TimeSlots(SlotId) → ON DELETE CASCADE
+  ✓ TimeSlots.DoctorId → FOREIGN KEY → Doctors(DoctorId) → ON DELETE CASCADE
+
+CARDINALITY RELATIONSHIPS:
+  [1 User] ──────────────→ [Many Appointments]
+  [1 Doctor] ─────────────→ [Many Appointments]
+  [1 Doctor] ─────────────→ [Many TimeSlots]
+  [1 TimeSlot] ──────────→ [0-1 Appointment] (each slot can be booked by 0 or 1 user)
+
+================================================================================
+2. DATA TYPES REFERENCE
+================================================================================
+
+INTEGERS:
+  INT ...................... Used for: UserId, DoctorId, SlotId, AppointmentId, Experience
+  Range: -2,147,483,648 to 2,147,483,647
+  Storage: 4 bytes
+
+TEXT/STRINGS:
+  NVARCHAR(n) .............. Used for: Name, Email, Password, Phone, Status, Role
+  - N prefix = Unicode (supports international characters)
+  - (100) = max 100 characters
+  - Email fields: typically NVARCHAR(100)
+  - Phone: typically NVARCHAR(15)
+
+DATES & TIMES:
+  DATE ..................... Used for: SlotDate
+  Format: YYYY-MM-DD
+  Example: '2026-03-25'
+
+  DATETIME ................. Used for: CreatedDate, UpdatedDate, AppointmentDate
+  Format: YYYY-MM-DD HH:MM:SS.mmm
+  Example: '2026-03-25 14:30:45.123'
+
+  TIME ..................... Used for: StartTime, EndTime
+  Format: HH:MM:SS
+  Example: '14:00:00' (2:00 PM)
+
+BOOLEAN:
+  BIT ...................... Used for: IsBooked, IsActive
+  Values: 0 (false) or 1 (true)
+  Example: IsBooked = 0 means "available", IsBooked = 1 means "booked"
+
+================================================================================
+3. USER ROLES & PERMISSIONS
+================================================================================
+
+SYSTEM USERS:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ REGULAR USER (Role = 'User')                               │
+  ├─────────────────────────────────────────────────────────────┤
+  │ ✓ Can view available doctors                                │
+  │ ✓ Can view available time slots                             │
+  │ ✓ Can book appointments                                     │
+  │ ✓ Can view own appointments                                │
+  │ ✓ Can cancel own appointments                              │
+  │ ✗ Cannot modify system settings                            │
+  │ ✗ Cannot see other users' data                             │
+  │ Database Access: READ/WRITE on Appointments & TimeSlots    │
+  └─────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │ DOCTOR (Special User, stored in Doctors table)              │
+  ├─────────────────────────────────────────────────────────────┤
+  │ ✓ Can view own availability (timeslots)                    │
+  │ ✓ Can view patients booked with them                        │
+  │ ✓ Can mark slots as unavailable                             │
+  │ ✓ Can view patient contact details                          │
+  │ ✗ Cannot book appointments                                 │
+  │ ✗ Cannot view other doctors' data                          │
+  │ Database Access: READ on own records                        │
+  └─────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │ ADMIN (Role = 'Admin', stored in Users table)               │
+  ├─────────────────────────────────────────────────────────────┤
+  │ ✓ Can view all users                                       │
+  │ ✓ Can view all doctors                                     │
+  │ ✓ Can view all appointments                                │
+  │ ✓ Can view all timeslots                                   │
+  │ ✓ Can create/edit timeslots                                │
+  │ ✓ Can manage doctors                                       │
+  │ ✓ Can manage users                                         │
+  │ ✓ Can cancel any appointment                               │
+  │ ✓ Can view reports and analytics                           │
+  │ Database Access: FULL READ/WRITE on all tables             │
+  └─────────────────────────────────────────────────────────────┘
+
+================================================================================
+4. APPOINTMENT BOOKING FLOW (DATA PERSPECTIVE)
+================================================================================
+
+STEP 1: USER SEARCHES FOR DOCTORS
+  ├─ Input: Date, Time
+  ├─ Query: SELECT FROM Doctors JOIN TimeSlots
+  │         WHERE SlotDate = @date AND @time BETWEEN StartTime AND EndTime
+  │         AND IsBooked = 0
+  └─ Result: List of available doctors
+
+STEP 2: USER SELECTS DOCTOR AND VIEWS SLOTS
+  ├─ Input: DoctorId, Date
+  ├─ Query: SELECT FROM TimeSlots
+  │         WHERE DoctorId = @doctorId AND SlotDate = @date AND IsBooked = 0
+  └─ Result: List of available slots
+
+STEP 3: USER BOOKS APPOINTMENT (TRANSACTION)
+  ├─ **IMPORTANT: This must be TRANSACTIONAL to prevent double-booking**
+  │
+  ├─ Step 3a: VALIDATE
+  │   ├─ Verify SlotId exists
+  │   ├─ Verify IsBooked = 0
+  │   └─ If validation fails → Rollback & Show Error
+  │
+  ├─ Step 3b: INSERT in Appointments
+  │   ├─ INSERT INTO Appointments (UserId=@UserId, DoctorId=@DoctorId,
+  │   │                             SlotId=@SlotId, Status='Booked')
+  │
+  ├─ Step 3c: UPDATE TimeSlots
+  │   ├─ UPDATE TimeSlots SET IsBooked = 1 WHERE SlotId = @SlotId
+  │
+  ├─ Step 3d: COMMIT TRANSACTION
+  │   └─ All changes permanent, send confirmation
+  │
+  └─ If ANY step fails → Rollback entire transaction
+
+STEP 4: APPOINTMENT CONFIRMATION
+  ├─ Confirm booking details to user
+  ├─ Send confirmation (SMS/Email)
+  └─ Show on user's appointment list
+
+SAMPLE DATA FLOW:
+  User: testuser@gmail.com (UserId = 1)
+  Doctor: Dr. Sharma (DoctorId = 1)
+  Slot: Time 14:00-15:00 on 2026-03-25 (SlotId = 5)
+
+  ┌─ Looks for available doctors on 2026-03-25 at 14:00
+  ├─ Finds Dr. Sharma (DoctorId = 1)
+  ├─ Views his slots on 2026-03-25
+  ├─ Selects slot 14:00-15:00 (SlotId = 5)
+  ├─ Confirms booking
+  └─ System creates:
+     AppointmentId = 1
+     UserId = 1
+     DoctorId = 1
+     SlotId = 5
+     Status = 'Booked'
+     TimeSlots[SlotId=5].IsBooked = 1
+
+================================================================================
+5. APPOINTMENT CANCELLATION FLOW
+================================================================================
+
+STEP 1: USER/ADMIN REQUESTS CANCELLATION
+  ├─ Input: AppointmentId
+  └─ Verification: Check if user owns appointment or is admin
+
+STEP 2: DELETE APPOINTMENT
+  ├─ Query: DELETE FROM Appointments WHERE AppointmentId = @id
+  └─ Foreign key cascade: Automatically cascades to related records
+
+STEP 3: RELEASE TIME SLOT
+  ├─ Query: UPDATE TimeSlots SET IsBooked = 0 WHERE SlotId = @slotId
+  └─ Now other users can book this slot again
+
+STEP 4: NOTIFY USER (OPTIONAL)
+  └─ Send cancellation confirmation email/SMS
+
+NOTE: Cascade delete is configured, so deleting from Appointments
+      doesn't automatically affect TimeSlots for reuse.
+      Must manually release the slot.
+
+================================================================================
+6. ADMIN OPERATIONS - MARK SLOT UNAVAILABLE
+================================================================================
+
+SCENARIO: Doctor calls sick and can't work that day
+
+STEP 1: IDENTIFY AFFECTED SLOT
+  ├─ DoctorId = 1 (Dr. Sharma)
+  └─ SlotDate = 2026-03-25
+
+STEP 2: MARK ALL SLOTS UNAVAILABLE (TRANSACTION)
+  ├─ Find all booked appointments for that slot
+  │  Query: SELECT FROM Appointments WHERE DoctorId = 1 AND SlotDate = '2026-03-25'
+  │
+  ├─ UPDATE Appointments SET Status = 'Doctor Unavailable'
+  │
+  ├─ UPDATE TimeSlots SET IsBooked = 1 (prevents new bookings)
+  │
+  └─ NOTIFY affected patients (retrieve from AffectedUsers)
+
+STEP 3: SEND NOTIFICATIONS
+  ├─ Query: GET phone numbers from Users
+  ├─ Send SMS: "Your appointment with Dr. Sharma is cancelled. [details]"
+  └─ Log notifications in activity
+
+AFFECTED DATA EXAMPLE:
+  Before:
+    ┌────────────────────────────────────────┐
+    │ AppointmentId │ Status │ IsBooked │
+    ├────────────────────────────────────────┤
+    │ 1 │ Booked │ 1 │
+    │ 2 │ Booked │ 1 │
+    │ 3 │ Booked │ 1 │
+    └────────────────────────────────────────┘
+
+  After marking unavailable:
+    ┌────────────────────────────────────────┐
+    │ AppointmentId │ Status │ IsBooked │
+    ├────────────────────────────────────────┤
+    │ 1 │ Doctor Unavailable │ 1 │
+    │ 2 │ Doctor Unavailable │ 1 │
+    │ 3 │ Doctor Unavailable │ 1 │
+    └────────────────────────────────────────┘
+    (All users get notified via SMS/Email)
+
+================================================================================
+7. DATA INTEGRITY RULES
+================================================================================
+
+PRIMARY KEY CONSTRAINTS:
+  ✓ UserId must be UNIQUE in Users table
+  ✓ DoctorId must be UNIQUE in Doctors table
+  ✓ SlotId must be UNIQUE in TimeSlots table
+  ✓ AppointmentId must be UNIQUE in Appointments table
+
+UNIQUE CONSTRAINTS:
+  ✓ Email must be UNIQUE in Users (no two users with same email)
+  ✓ Email must be UNIQUE in Doctors (no two doctors with same email)
+
+FOREIGN KEY CONSTRAINTS:
+  ✓ Every Appointment must link to valid User
+  ✓ Every Appointment must link to valid Doctor
+  ✓ Every Appointment must link to valid TimeSlot
+  ✓ Every TimeSlot must link to valid Doctor
+
+NOT NULL CONSTRAINTS:
+  ✓ UserId, DoctorId, SlotId (in Appointments) - REQUIRED
+  ✓ Name, Email, Password (in Users) - REQUIRED
+  ✓ DoctorName, Specialization, Experience, Phone (in Doctors) - REQUIRED
+  ✓ DoctorId, SlotDate, StartTime, EndTime (in TimeSlots) - REQUIRED
+
+CASCADE DELETE RULES:
+  ✓ If Doctor is deleted → All his TimeSlots are deleted
+  ✓ If TimeSlot is deleted → All Appointments using it are deleted
+  ✓ If User is deleted → All his Appointments are deleted
+  ✓ If Doctor is deleted → All his Appointments are deleted
+
+VALID VALUE RANGES:
+  ✓ Experience: Must be >= 0 (years cannot be negative)
+  ✓ IsBooked: 0 or 1 only
+  ✓ IsActive: 0 or 1 only
+  ✓ SlotDate: Must be DATE only (no time component)
+  ✓ StartTime & EndTime: Must be valid TIME format
+
+================================================================================
+8. INDEXES FOR PERFORMANCE
+================================================================================
+
+IMPORTANT INDEXES CREATED:
+
+Users Table:
+  ✓ PRIMARY KEY: UserId (automatic)
+  ✓ UNIQUE: Email (automatic)
+  ✓ INDEX: idx_Users_Email → Fast email lookups (login)
+  ✓ INDEX: idx_Users_Role → Fast role filtering (admin checks)
+
+Doctors Table:
+  ✓ PRIMARY KEY: DoctorId (automatic)
+  ✓ UNIQUE: Email (automatic)
+  ✓ INDEX: idx_Doctors_Email → Fast doctor email searches
+  ✓ INDEX: idx_Doctors_Specialization → Filter by specialty
+
+TimeSlots Table:
+  ✓ PRIMARY KEY: SlotId (automatic)
+  ✓ FOREIGN KEY: DoctorId (automatic)
+  ✓ INDEX: idx_TimeSlots_DoctorId → Find slots by doctor
+  ✓ INDEX: idx_TimeSlots_SlotDate → Find slots by date
+  ✓ INDEX: idx_TimeSlots_IsBooked → Find available slots
+  ✓ COMPOSITE INDEX: idx_TimeSlots_DoctorDate → Doctor + Date searches (FASTEST)
+
+Appointments Table:
+  ✓ PRIMARY KEY: AppointmentId (automatic)
+  ✓ FOREIGN KEY: UserId (automatic)
+  ✓ FOREIGN KEY: DoctorId (automatic)
+  ✓ FOREIGN KEY: SlotId (automatic)
+  ✓ INDEX: idx_Appointments_UserId → Find user's appointments
+  ✓ INDEX: idx_Appointments_DoctorId → Find doctor's appointments
+  ✓ INDEX: idx_Appointments_Status → Filter by status
+  ✓ INDEX: idx_Appointments_CreatedDate → Timeline queries
+
+PERFORMANCE TIPS:
+  • Use composite index idx_TimeSlots_DoctorDate for doctor's daily slots
+  • Use idx_Appointments_UserId for user's bookings
+  • Avoid SELECT * – specify needed columns only
+  • Use BETWEEN for date ranges instead of >= AND <=
+  • Always CAST(GETDATE() AS DATE) for date comparisons (ignore time)
+
+================================================================================
+9. COMMON QUERIES & EXPECTED RESULTS
+================================================================================
+
+QUERY: Get all available doctors for 2026-03-25 at 14:00
+─────────────────────────────────────────────────────────
+SELECT DISTINCT d.*
+FROM Doctors d
+JOIN TimeSlots t ON d.DoctorId = t.DoctorId
+WHERE t.SlotDate = '2026-03-25'
+  AND CAST('14:00:00' AS TIME) BETWEEN t.StartTime AND t.EndTime
+  AND t.IsBooked = 0;
+
+EXPECTED RESULT:
+  DoctorId | DoctorName | Specialization | Experience | Phone
+  1        | Dr. Sharma | Cardiologist   | 10         | 9988776655
+  3        | Dr. Singh  | Dermatologist  | 12         | 9988776657
+
+QUERY: Get user's upcoming appointments
+───────────────────────────────────────
+SELECT 
+    d.DoctorName, t.SlotDate, t.StartTime, t.EndTime, a.Status
+FROM Appointments a
+INNER JOIN Doctors d ON a.DoctorId = d.DoctorId
+INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+WHERE a.UserId = 1 AND t.SlotDate >= CAST(GETDATE() AS DATE)
+ORDER BY t.SlotDate;
+
+EXPECTED RESULT:
+  DoctorName | SlotDate   | StartTime | EndTime | Status
+  Dr. Sharma | 2026-03-25 | 14:00:00  | 15:00:00| Booked
+
+QUERY: Get doctor's patients for specific date
+──────────────────────────────────────────────
+SELECT 
+    u.Name, u.Phone, u.Email, t.StartTime, a.Status
+FROM Appointments a
+INNER JOIN Users u ON a.UserId = u.UserId
+INNER JOIN TimeSlots t ON a.SlotId = t.SlotId
+WHERE a.DoctorId = 1 AND t.SlotDate = '2026-03-25'
+ORDER BY t.StartTime;
+
+EXPECTED RESULT:
+  Name       | Phone      | Email             | StartTime | Status
+  John Doe   | 9876543210 | john@gmail.com    | 10:00:00  | Booked
+  Jane Smith | 9876543211 | jane@gmail.com    | 14:00:00  | Booked
+
+================================================================================
+10. BACKUP & RECOVERY PROCEDURES
+================================================================================
+
+BACKUP DATABASE:
+  1. In SSMS, right-click AppointmentDB
+  2. Select "Tasks" → "Back Up"
+  3. Choose "Full" backup
+  4. Set location and filename
+  5. Click OK
+
+RESTORE FROM BACKUP:
+  1. Right-click Databases folder
+  2. Select "Restore Database"
+  3. Choose "From Device"
+  4. Browse to backup file
+  5. Select version to restore
+  6. Click OK
+
+EXPORT DATA:
+  1. Right-click database
+  2. Select "Tasks" → "Export Data"
+  3. Choose export format (Excel, CSV, etc.)
+  4. Specify destination
+  5. Complete wizard
+
+GENERATE SCRIPTS:
+  -- Export schema + data
+  1. Right-click database
+  2. Select "Tasks" → "Generate Scripts"
+  3. Select "Script entire database or specific objects"
+  4. Choose "Advanced"
+  5. Enable "Script Data" = True
+
+================================================================================
+11. MONITORING & MAINTENANCE
+================================================================================
+
+CHECK DATABASE HEALTH:
+  DBCC CHECKDB (AppointmentDB);
+
+GET OBJECT SIZES:
+  SELECT 
+      t.name AS TableName,
+      i.rowcnt AS RowCount
+  FROM sys.tables t
+  INNER JOIN sys.sysindexes i ON t.object_id = i.id
+  WHERE i.indid < 2
+  ORDER BY i.rowcnt DESC;
+
+REBUILD INDEXES:
+  -- Rebuild all indexes
+  ALTER INDEX ALL ON Users REBUILD;
+  ALTER INDEX ALL ON Doctors REBUILD;
+  ALTER INDEX ALL ON TimeSlots REBUILD;
+  ALTER INDEX ALL ON Appointments REBUILD;
+
+SHRINK LOG FILE (if too large):
+  DBCC SHRINKFILE (AppointmentDB_log, 100); -- Shrink to 100MB
+
+GET UNUSED INDEXES:
+  SELECT OBJECT_NAME(i.object_id) AS TableName, i.name AS IndexName
+  FROM sys.indexes i
+  WHERE database_id = DB_ID()
+  AND INDEXPROPERTY(i.object_id, i.name, 'IndexDepth') = 0;
+
+================================================================================
+SUMMARY FOR QUICK REFERENCE
+================================================================================
+
+4 TABLES: Users, Doctors, TimeSlots, Appointments
+4 KEY RELATIONSHIPS: User→Appointments, Doctor→Appointments, Doctor→Slots, Slot→Appointment
+6 STANDARD SLOTS PER DAY: 10-11 AM, 11 AM-12 PM, 1-2 PM, 2-3 PM, 3-4 PM, 4-5 PM
+CRITICAL OPERATION: Booking must be TRANSACTIONAL (prevents double-booking)
+3 USER ROLES: User (regular), Doctor (special), Admin (full access)
+CASCADE DELETE: Enabled on all foreign keys
+
+================================================================================
