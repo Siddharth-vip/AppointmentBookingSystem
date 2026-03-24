@@ -42,7 +42,7 @@ namespace Appointment.UI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Dashboard(DateTime? selectedDate)
         {
             var doctorId = HttpContext.Session.GetInt32("DoctorId");
             if (doctorId == null)
@@ -50,10 +50,22 @@ namespace Appointment.UI.Controllers
                 return RedirectToAction("Login");
             }
 
+            DateTime dashboardDate = selectedDate?.Date ?? DateTime.Today;
+
+            var allSlots = await api.GetTimeSlotsAsync(doctorId.Value);
+            var allAppointments = await api.GetDoctorAppointmentsAsync(doctorId.Value);
+
             var model = new DoctorDashboardViewModel
             {
-                Slots = await api.GetTimeSlotsAsync(doctorId.Value),
-                Appointments = await api.GetDoctorAppointmentsAsync(doctorId.Value)
+                SelectedDate = dashboardDate,
+                Slots = allSlots
+                    .Where(s => s.SlotDate.Date == dashboardDate)
+                    .OrderBy(s => s.StartTime)
+                    .ToList(),
+                Appointments = allAppointments
+                    .Where(a => a.SlotDate.Date == dashboardDate)
+                    .OrderBy(a => a.StartTime)
+                    .ToList()
             };
 
             return View(model);
@@ -113,7 +125,77 @@ namespace Appointment.UI.Controllers
                 return View("NoDoctor");
             }
 
+            ViewBag.IsFromSearch = true;
+            ViewBag.SelectedDate = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            ViewBag.SelectedTime = parsedTime.ToString(@"hh\:mm");
+
             return View("Index", doctors);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BookFromSearch(int doctorId, DateTime selectedDate, string selectedTime)
+        {
+            if (!TimeSpan.TryParse(selectedTime, out TimeSpan desiredTime))
+            {
+                TempData["ErrorMessage"] = "Invalid time selected.";
+                return RedirectToAction("Index");
+            }
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Auth", new
+                {
+                    returnUrl = Url.Action("Book", "Appointment", new { doctorId })
+                });
+            }
+
+            var slots = await api.GetTimeSlotsAsync(doctorId);
+
+            var matchedSlot = slots.FirstOrDefault(slot =>
+            {
+                if (slot.IsBooked || slot.SlotDate.Date != selectedDate.Date)
+                {
+                    return false;
+                }
+
+                if (!DateTime.TryParse(slot.StartTime, out DateTime parsedStart))
+                {
+                    return false;
+                }
+
+                return parsedStart.TimeOfDay == desiredTime;
+            });
+
+            if (matchedSlot == null)
+            {
+                TempData["ErrorMessage"] = "Selected time slot is no longer available. Please choose another slot.";
+                return RedirectToAction("Book", "Appointment", new { doctorId });
+            }
+
+            var appointment = new Appointment.UI.Models.Appointment
+            {
+                UserId = userId.Value,
+                DoctorId = doctorId,
+                SlotId = matchedSlot.SlotId,
+                AppointmentDate = DateTime.Now,
+                Status = "Booked"
+            };
+
+            var bookingResult = await api.BookAppointmentAsync(appointment);
+
+            if (bookingResult.Success)
+            {
+                TempData["SuccessMessage"] = bookingResult.Message;
+                TempData["JustBookedSlotId"] = matchedSlot.SlotId;
+                return RedirectToAction("Index", "Home");
+            }
+
+            TempData["ErrorMessage"] = bookingResult.Message +
+                (bookingResult.SmsSent ? " SMS notification sent to your number." : "");
+
+            return RedirectToAction("Book", "Appointment", new { doctorId });
         }
 
         // ===============================
@@ -158,6 +240,7 @@ namespace Appointment.UI.Controllers
             if (bookingResult.Success)
             {
                 TempData["SuccessMessage"] = bookingResult.Message;
+                TempData["JustBookedSlotId"] = slotId;
             }
             else
             {

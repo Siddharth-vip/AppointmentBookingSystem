@@ -1,7 +1,16 @@
-﻿@if (TempData["SuccessMessage"] != null)
+﻿@model HomeIndexViewModel
+
+@if (TempData["SuccessMessage"] != null)
 {
     <div class="alert alert-success text-center" role="alert">
         @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger text-center" role="alert">
+        @TempData["ErrorMessage"]
     </div>
 }
 
@@ -69,6 +78,119 @@
     </div>
 
 </div>
+
+@if (Model.IsLoggedIn && !Model.IsAdmin)
+{
+    <section class="home-summary container mt-4 mb-5">
+        @if (Model.ShowBookedJustNow && Model.BookedJustNow != null)
+        {
+            <div class="just-booked-card mb-4">
+                <div class="just-booked-label">Booked just now</div>
+                <h4 class="mb-2">@Model.BookedJustNow.DoctorName</h4>
+                <p class="mb-1"><strong>Date:</strong> @Model.BookedJustNow.SlotDate.ToString("dd-MM-yyyy")</p>
+                <p class="mb-1"><strong>Time:</strong> @Model.BookedJustNow.StartTime - @Model.BookedJustNow.EndTime</p>
+                <p class="mb-0"><strong>Status:</strong> @Model.BookedJustNow.Status</p>
+            </div>
+        }
+
+        <div class="summary-head d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="mb-1">Welcome back, @Model.UserName</h3>
+                <p class="text-muted mb-0">Your latest appointment flow snapshot.</p>
+            </div>
+            <a href="/Dashboard/Index" class="btn btn-outline-primary">Go To My Slots</a>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h5 class="text-success mb-1">Booked Appointments</h5>
+                        <div class="display-6">@Model.TotalBookedCount</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h5 class="text-warning mb-1">Unavailable / Reschedule</h5>
+                        <div class="display-6">@Model.TotalUnavailableCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">Recent Booked Slots</div>
+                    <div class="card-body p-0">
+                        @if (Model.RecentBookedSlots.Count == 0)
+                        {
+                            <p class="p-3 mb-0">No booked slots yet.</p>
+                        }
+                        else
+                        {
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Doctor</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var slot in Model.RecentBookedSlots)
+                                    {
+                                        <tr>
+                                            <td>@slot.DoctorName</td>
+                                            <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
+                                            <td>@slot.StartTime - @slot.EndTime</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-warning">Recent Unavailable / Reschedule</div>
+                    <div class="card-body p-0">
+                        @if (Model.RecentUnavailableSlots.Count == 0)
+                        {
+                            <p class="p-3 mb-0">No unavailable slots.</p>
+                        }
+                        else
+                        {
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Doctor</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var slot in Model.RecentUnavailableSlots)
+                                    {
+                                        <tr>
+                                            <td>@slot.DoctorName</td>
+                                            <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
+                                            <td>@slot.Status</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
 
 
 <style>
@@ -172,6 +294,30 @@ body{
 
 .book-btn:hover{
     background:#27ae60;
+}
+
+.home-summary .display-6{
+    font-size:2.2rem;
+    font-weight:700;
+}
+
+.just-booked-card{
+    background:linear-gradient(135deg,#1d976c,#2ecc71);
+    color:white;
+    border-radius:14px;
+    padding:20px;
+    box-shadow:0 8px 22px rgba(0,0,0,0.15);
+}
+
+.just-booked-label{
+    display:inline-block;
+    background:rgba(255,255,255,0.18);
+    border:1px solid rgba(255,255,255,0.35);
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:12px;
+    margin-bottom:8px;
+    font-weight:600;
 }
 
 </style>

@@ -38,6 +38,7 @@ namespace Appointment.UI.Controllers
                 // Save session values
                 HttpContext.Session.SetInt32("UserId", user.UserId);
                 HttpContext.Session.SetString("UserName", user.Name);
+                HttpContext.Session.SetString("UserEmail", user.Email);
                 HttpContext.Session.SetString("UserRole", loginResponse.Role ?? user.Role ?? "User");
 
                 if (!string.IsNullOrWhiteSpace(loginResponse.Token))

@@ -71,6 +71,7 @@ namespace Appointment.UI.Controllers
             if (bookingResult.Success)
             {
                 TempData["SuccessMessage"] = bookingResult.Message;
+                TempData["JustBookedSlotId"] = slotId;
             }
             else
             {

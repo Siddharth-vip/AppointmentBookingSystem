@@ -149,6 +149,22 @@ namespace Appointment.UI.Services
                 }) ?? new List<TimeSlot>();
         }
 
+        public async Task<List<UserAppointmentStatusItem>> GetUserAppointmentStatusesAsync(int userId)
+        {
+            var response = await _httpClient.GetAsync($"appointment/user/{userId}");
+
+            if (!response.IsSuccessStatusCode)
+                return new List<UserAppointmentStatusItem>();
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<List<UserAppointmentStatusItem>>(json,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<UserAppointmentStatusItem>();
+        }
+
         // ===============================
         // BOOK APPOINTMENT
         // ===============================
@@ -271,6 +287,60 @@ namespace Appointment.UI.Services
                 Success = response.IsSuccessStatusCode,
                 Message = message,
                 SmsSent = false
+            };
+        }
+
+        public async Task<BookingApiResult> NotifySlotUnavailableAsync(int doctorId, DateTime slotDate, TimeSpan startTime)
+        {
+            var payload = new
+            {
+                DoctorId = doctorId,
+                SlotDate = slotDate.Date,
+                StartTime = startTime
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "admin/notify-slot-unavailable", content);
+            var response = await _httpClient.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            string message = response.IsSuccessStatusCode
+                ? "Users notified successfully."
+                : "Unable to notify users for this slot.";
+
+            bool smsSent = false;
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                using var doc = JsonDocument.Parse(body);
+
+                if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                {
+                    message = msgProp.GetString() ?? message;
+                }
+
+                if (doc.RootElement.TryGetProperty("notifiedCount", out var notifiedProp)
+                    && notifiedProp.TryGetInt32(out int notifiedCount))
+                {
+                    smsSent = notifiedCount > 0;
+                    message = $"{message} Notified users: {notifiedCount}.";
+                }
+
+                if (doc.RootElement.TryGetProperty("createdCount", out var createdProp)
+                    && createdProp.TryGetInt32(out int createdCount)
+                    && createdCount > 0)
+                {
+                    message = $"{message} Auto-created slots: {createdCount}.";
+                }
+            }
+
+            return new BookingApiResult
+            {
+                Success = response.IsSuccessStatusCode,
+                Message = message,
+                SmsSent = smsSent
             };
         }
 

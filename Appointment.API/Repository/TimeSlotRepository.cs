@@ -153,6 +153,116 @@ namespace Appointment.API.Repository
             }
         }
 
+        public TimeSlot? GetSlotByIdAndDoctor(int slotId, int doctorId)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = @"SELECT TOP 1 SlotId, DoctorId, SlotDate, StartTime, EndTime, IsBooked
+                                 FROM TimeSlots
+                                 WHERE SlotId = @SlotId
+                                 AND DoctorId = @DoctorId";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@SlotId", slotId);
+                cmd.Parameters.AddWithValue("@DoctorId", doctorId);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (!reader.Read())
+                {
+                    return null;
+                }
+
+                return new TimeSlot
+                {
+                    SlotId = Convert.ToInt32(reader["SlotId"]),
+                    DoctorId = Convert.ToInt32(reader["DoctorId"]),
+                    SlotDate = Convert.ToDateTime(reader["SlotDate"]),
+                    StartTime = (TimeSpan)reader["StartTime"],
+                    EndTime = (TimeSpan)reader["EndTime"],
+                    IsBooked = Convert.ToBoolean(reader["IsBooked"])
+                };
+            }
+        }
+
+        public TimeSlot? GetSlotByDateAndStartTime(int doctorId, DateTime slotDate, TimeSpan startTime)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = @"SELECT TOP 1 SlotId, DoctorId, SlotDate, StartTime, EndTime, IsBooked
+                                 FROM TimeSlots
+                                 WHERE DoctorId = @DoctorId
+                                 AND SlotDate = @SlotDate
+                                 AND StartTime = @StartTime";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@DoctorId", doctorId);
+                cmd.Parameters.AddWithValue("@SlotDate", slotDate.Date);
+                cmd.Parameters.AddWithValue("@StartTime", startTime);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (!reader.Read())
+                {
+                    return null;
+                }
+
+                return new TimeSlot
+                {
+                    SlotId = Convert.ToInt32(reader["SlotId"]),
+                    DoctorId = Convert.ToInt32(reader["DoctorId"]),
+                    SlotDate = Convert.ToDateTime(reader["SlotDate"]),
+                    StartTime = (TimeSpan)reader["StartTime"],
+                    EndTime = (TimeSpan)reader["EndTime"],
+                    IsBooked = Convert.ToBoolean(reader["IsBooked"])
+                };
+            }
+        }
+
+        public TimeSlot? GetNextAvailableSlot(int doctorId, DateTime fromDate, TimeSpan fromTime)
+        {
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = @"SELECT TOP 1 SlotId, DoctorId, SlotDate, StartTime, EndTime, IsBooked
+                                 FROM TimeSlots
+                                 WHERE DoctorId = @DoctorId
+                                 AND IsBooked = 0
+                                 AND (
+                                     SlotDate > @FromDate
+                                     OR (SlotDate = @FromDate AND StartTime > @FromTime)
+                                 )
+                                 ORDER BY SlotDate, StartTime";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@DoctorId", doctorId);
+                cmd.Parameters.AddWithValue("@FromDate", fromDate.Date);
+                cmd.Parameters.AddWithValue("@FromTime", fromTime);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (!reader.Read())
+                {
+                    return null;
+                }
+
+                return new TimeSlot
+                {
+                    SlotId = Convert.ToInt32(reader["SlotId"]),
+                    DoctorId = Convert.ToInt32(reader["DoctorId"]),
+                    SlotDate = Convert.ToDateTime(reader["SlotDate"]),
+                    StartTime = (TimeSpan)reader["StartTime"],
+                    EndTime = (TimeSpan)reader["EndTime"],
+                    IsBooked = Convert.ToBoolean(reader["IsBooked"])
+                };
+            }
+        }
+
         public bool DeleteSlot(int slotId, int doctorId)
         {
             using (SqlConnection conn = db.GetConnection())

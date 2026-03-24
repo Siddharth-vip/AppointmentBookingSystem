@@ -2,14 +2,16 @@ namespace Appointment.API.Services
 {
     public class SmsService
     {
-        public bool SendDoctorUnavailableMessage(string? phoneNumber)
+        public bool SendDoctorUnavailableMessage(string? phoneNumber, string? customMessage = null)
         {
             if (string.IsNullOrWhiteSpace(phoneNumber))
             {
                 return false;
             }
 
-            var message = "Doctor is not available kindly postpone the schedule.";
+            var message = string.IsNullOrWhiteSpace(customMessage)
+                ? "Doctor is not available kindly postpone the schedule."
+                : customMessage;
 
             // Placeholder SMS implementation.
             // Integrate Twilio or another provider here in production.

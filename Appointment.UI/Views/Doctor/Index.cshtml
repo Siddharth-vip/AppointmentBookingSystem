@@ -2,11 +2,22 @@
 
 @{
     ViewData["Title"] = "Available Doctors";
+    bool isFromSearch = ViewBag.IsFromSearch != null && (bool)ViewBag.IsFromSearch;
+    string? selectedDate = ViewBag.SelectedDate as string;
+    string? selectedTime = ViewBag.SelectedTime as string;
 }
 
 <div class="container mt-5">
 
 <h2 class="mb-4">Available Doctors</h2>
+
+@if (isFromSearch)
+{
+    <div class="alert alert-info">
+        Showing doctors available on <strong>@selectedDate</strong> at <strong>@selectedTime</strong>.
+        You can book directly from this page.
+    </div>
+}
 
 <table class="table table-bordered table-striped">
 
@@ -33,10 +44,23 @@
 <td>@doctor.Phone</td>
 
 <td>
-<a href="/Appointment/Book?doctorId=@doctor.DoctorId"
-   class="btn btn-primary">
-View Slots
-</a>
+@if (isFromSearch)
+{
+    <form asp-controller="Doctor" asp-action="BookFromSearch" method="post" class="d-inline">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="doctorId" value="@doctor.DoctorId" />
+        <input type="hidden" name="selectedDate" value="@selectedDate" />
+        <input type="hidden" name="selectedTime" value="@selectedTime" />
+        <button type="submit" class="btn btn-success">Book Appointment</button>
+    </form>
+}
+else
+{
+    <a href="/Appointment/Book?doctorId=@doctor.DoctorId"
+       class="btn btn-primary">
+        View Slots
+    </a>
+}
 </td>
 
 </tr>

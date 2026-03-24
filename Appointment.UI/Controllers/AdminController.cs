@@ -49,5 +49,32 @@ namespace Appointment.UI.Controllers
 
             return RedirectToAction("Dashboard");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> NotifySlotUnavailable(int doctorId, DateTime slotDate, string slotStartTime)
+        {
+            if (!string.Equals(HttpContext.Session.GetString("UserRole"), "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            if (slotDate.Date < DateTime.Today)
+            {
+                TempData["AdminError"] = "Please choose today or a future date for unavailable slot.";
+                return RedirectToAction("Dashboard");
+            }
+
+            if (!TimeSpan.TryParse(slotStartTime, out var startTime))
+            {
+                TempData["AdminError"] = "Please enter a valid slot start time.";
+                return RedirectToAction("Dashboard");
+            }
+
+            var result = await _apiService.NotifySlotUnavailableAsync(doctorId, slotDate.Date, startTime);
+            TempData[result.Success ? "AdminSuccess" : "AdminError"] = result.Message;
+
+            return RedirectToAction("Dashboard");
+        }
     }
 }

@@ -29,13 +29,14 @@
 						<th>Specialization</th>
 						<th>Experience</th>
 						<th>Generate Daily Slots</th>
+						<th>Notify For Unavailable Slot (Date + Time)</th>
 					</tr>
 				</thead>
 				<tbody>
 				@if (Model.Doctors == null || Model.Doctors.Count == 0)
 				{
 					<tr>
-						<td colspan="5" class="text-center">No doctors found.</td>
+						<td colspan="6" class="text-center">No doctors found.</td>
 					</tr>
 				}
 				else
@@ -53,6 +54,15 @@
 									<input type="hidden" name="doctorId" value="@doctor.DoctorId" />
 									<input type="date" name="slotDate" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
 									<button type="submit" class="btn btn-primary">Generate</button>
+								</form>
+							</td>
+							<td>
+								<form asp-controller="Admin" asp-action="NotifySlotUnavailable" method="post" class="d-flex gap-2 align-items-center">
+									@Html.AntiForgeryToken()
+									<input type="hidden" name="doctorId" value="@doctor.DoctorId" />
+									<input type="date" name="slotDate" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+									<input type="time" name="slotStartTime" class="form-control" step="3600" required />
+									<button type="submit" class="btn btn-warning">Notify</button>
 								</form>
 							</td>
 						</tr>

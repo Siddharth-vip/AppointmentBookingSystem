@@ -16,6 +16,8 @@ namespace Appointment.UI.Models
 
         public string? PatientEmail { get; set; }
 
+        public string? PatientPhone { get; set; }
+
         public DateTime SlotDate { get; set; }
 
         public string? StartTime { get; set; }

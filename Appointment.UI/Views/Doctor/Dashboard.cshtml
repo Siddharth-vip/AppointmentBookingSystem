@@ -44,7 +44,21 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header">Your Slots</div>
+        <div class="card-body">
+            <form asp-controller="Doctor" asp-action="Dashboard" method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Select Date</label>
+                    <input type="date" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="form-control" required />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Show</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Your Slots - @Model.SelectedDate.ToString("dd-MM-yyyy")</div>
         <div class="card-body p-0">
             <table class="table table-bordered mb-0">
                 <thead>
@@ -61,7 +75,7 @@
                 @if (Model.Slots.Count == 0)
                 {
                     <tr>
-                        <td colspan="6" class="text-center">No slots created yet.</td>
+                        <td colspan="6" class="text-center">No slots created for selected date.</td>
                     </tr>
                 }
                 else
@@ -105,13 +119,14 @@
     </div>
 
     <div class="card">
-        <div class="card-header">Booked Patients</div>
+        <div class="card-header">Booked Patients - @Model.SelectedDate.ToString("dd-MM-yyyy")</div>
         <div class="card-body p-0">
             <table class="table table-bordered mb-0">
                 <thead>
                     <tr>
                         <th>Appointment ID</th>
                         <th>Patient</th>
+                        <th>Mobile</th>
                         <th>Email</th>
                         <th>Slot Date</th>
                         <th>Time</th>
@@ -122,7 +137,7 @@
                 @if (Model.Appointments.Count == 0)
                 {
                     <tr>
-                        <td colspan="6" class="text-center">No bookings yet.</td>
+                        <td colspan="7" class="text-center">No bookings for selected date.</td>
                     </tr>
                 }
                 else
@@ -132,6 +147,7 @@
                         <tr>
                             <td>@appointment.AppointmentId</td>
                             <td>@appointment.PatientName</td>
+                            <td>@appointment.PatientPhone</td>
                             <td>@appointment.PatientEmail</td>
                             <td>@appointment.SlotDate.ToString("dd-MM-yyyy")</td>
                             <td>@To12Hour(appointment.StartTime) - @To12Hour(appointment.EndTime)</td>

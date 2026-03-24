@@ -1,23 +1,90 @@
+@model UserSlotsDashboardViewModel
+
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "My Slots";
 }
 
-<div class="container mt-5">
+<div class="container mt-4 mb-5">
+    <h2>My Slot Status</h2>
+    <p class="text-muted">Hello @Model.UserName, here are your booked and unavailable appointment slots.</p>
 
-    <h2>Welcome to your Dashboard</h2>
+    <div class="mb-4">
+        <a href="/Doctor/Index" class="btn btn-primary">Find Doctors</a>
+    </div>
 
-    <p>You are successfully logged in.</p>
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">Booked Slots</div>
+        <div class="card-body p-0">
+            @if (Model.BookedSlots.Count == 0)
+            {
+                <p class="p-3 mb-0">No booked slots found.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.BookedSlots)
+                            {
+                                <tr>
+                                    <td>@item.DoctorName</td>
+                                    <td>@item.SlotDate.ToString("dd-MM-yyyy")</td>
+                                    <td>@item.StartTime</td>
+                                    <td>@item.EndTime</td>
+                                    <td><span class="badge bg-success">@item.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 
-    <br />
-
-    <a href="/Doctor/Index" class="btn btn-primary">
-        Find Doctors
-    </a>
-
-    <br /><br />
-
-    <a href="/Dashboard/Logout" class="btn btn-danger">
-        Logout
-    </a>
-
+    <div class="card">
+        <div class="card-header bg-warning">Unavailable / Reschedule Slots</div>
+        <div class="card-body p-0">
+            @if (Model.UnavailableSlots.Count == 0)
+            {
+                <p class="p-3 mb-0">No unavailable slots found.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.UnavailableSlots)
+                            {
+                                <tr>
+                                    <td>@item.DoctorName</td>
+                                    <td>@item.SlotDate.ToString("dd-MM-yyyy")</td>
+                                    <td>@item.StartTime</td>
+                                    <td>@item.EndTime</td>
+                                    <td><span class="badge bg-warning text-dark">@item.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
