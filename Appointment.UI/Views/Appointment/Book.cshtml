@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Book Appointment";
     List<TimeSlot>? slots = ViewBag.Slots as List<TimeSlot>;
+    DateTime selectedDate = ViewBag.SelectedDate == null ? DateTime.Today : (DateTime)ViewBag.SelectedDate;
 }
 
 @functions {
@@ -30,6 +31,26 @@
 
 <h2>Doctor Time Slots</h2>
 
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-controller="Appointment" asp-action="Book" method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+            <div class="col-md-4">
+                <label class="form-label">Select Date</label>
+                <input type="date"
+                       name="selectedDate"
+                       value="@selectedDate.ToString("yyyy-MM-dd")"
+                       min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                       class="form-control"
+                       required />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Show Slots</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @if (TempData["ErrorMessage"] != null)
 {
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
@@ -42,7 +63,7 @@
 
 @if (slots == null || slots.Count == 0)
 {
-    <p style="color:red;">No slots available.</p>
+    <p style="color:red;">No slots available for @selectedDate.ToString("dd-MM-yyyy").</p>
 }
 else
 {

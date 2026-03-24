@@ -115,6 +115,12 @@ namespace Appointment.UI.Controllers
         [HttpPost]
         public async Task<IActionResult> CheckAvailability(DateTime date, string time)
         {
+            if (date.Date < DateTime.Today)
+            {
+                ViewBag.Message = "Please select today or a future date.";
+                return View("NoDoctor");
+            }
+
             TimeSpan parsedTime = TimeSpan.Parse(time);
 
             var doctors = await api.GetAvailableDoctorsAsync(date, parsedTime);
@@ -207,6 +213,12 @@ namespace Appointment.UI.Controllers
 
             if (slots == null)
                 slots = new List<TimeSlot>();
+
+            slots = slots
+                .Where(slot => slot.SlotDate.Date >= DateTime.Today)
+                .OrderBy(slot => slot.SlotDate)
+                .ThenBy(slot => slot.StartTime)
+                .ToList();
 
             return View(slots);
         }

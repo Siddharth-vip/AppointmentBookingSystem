@@ -13,7 +13,7 @@ namespace Appointment.UI.Controllers
             api = apiService;
         }
 
-        public async Task<IActionResult> Book(int doctorId)
+        public async Task<IActionResult> Book(int doctorId, DateTime? selectedDate)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
 
@@ -27,7 +27,21 @@ namespace Appointment.UI.Controllers
             if (slots == null)
                 slots = new List<TimeSlot>();
 
-            ViewBag.Slots = slots;
+            slots = slots
+                .Where(slot => slot.SlotDate.Date >= DateTime.Today)
+                .OrderBy(slot => slot.SlotDate)
+                .ThenBy(slot => slot.StartTime)
+                .ToList();
+
+            DateTime filterDate = selectedDate?.Date ?? DateTime.Today;
+
+            var filteredSlots = slots
+                .Where(slot => slot.SlotDate.Date == filterDate)
+                .ToList();
+
+            ViewBag.SelectedDate = filterDate;
+
+            ViewBag.Slots = filteredSlots;
 
             var appointment = new Appointment.UI.Models.Appointment
             {
