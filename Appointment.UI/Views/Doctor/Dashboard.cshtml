@@ -4,6 +4,28 @@
     ViewData["Title"] = "Doctor Dashboard";
 }
 
+@functions {
+    public static string To12Hour(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        if (TimeSpan.TryParse(value, out var timeSpanValue))
+        {
+            return DateTime.Today.Add(timeSpanValue).ToString("hh:mm tt");
+        }
+
+        if (DateTime.TryParse(value, out var dateTimeValue))
+        {
+            return dateTimeValue.ToString("hh:mm tt");
+        }
+
+        return value;
+    }
+}
+
 <div class="container mt-4">
     <h2>Doctor Dashboard</h2>
 
@@ -17,27 +39,8 @@
         <div class="alert alert-danger">@TempData["DoctorError"]</div>
     }
 
-    <div class="card mb-4">
-        <div class="card-header">Create Future Slot</div>
-        <div class="card-body">
-            <form asp-controller="Doctor" asp-action="CreateSlot" method="post" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Date</label>
-                    <input type="date" name="slotDate" class="form-control" required />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Start Time</label>
-                    <input type="time" name="startTime" class="form-control" required />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">End Time</label>
-                    <input type="time" name="endTime" class="form-control" required />
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Create Slot</button>
-                </div>
-            </form>
-        </div>
+    <div class="alert alert-info">
+        Slot creation is handled by Admin only.
     </div>
 
     <div class="card mb-4">
@@ -68,8 +71,8 @@
                         <tr>
                             <td>@slot.SlotId</td>
                             <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
-                            <td>@slot.StartTime</td>
-                            <td>@slot.EndTime</td>
+                            <td>@To12Hour(slot.StartTime)</td>
+                            <td>@To12Hour(slot.EndTime)</td>
                             <td>
                                 @if (slot.IsBooked)
                                 {
@@ -131,7 +134,7 @@
                             <td>@appointment.PatientName</td>
                             <td>@appointment.PatientEmail</td>
                             <td>@appointment.SlotDate.ToString("dd-MM-yyyy")</td>
-                            <td>@appointment.StartTime - @appointment.EndTime</td>
+                            <td>@To12Hour(appointment.StartTime) - @To12Hour(appointment.EndTime)</td>
                             <td>@appointment.Status</td>
                         </tr>
                     }

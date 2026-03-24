@@ -8,16 +8,17 @@ namespace Appointment.API.Services
 {
     public class JwtService
     {
-        private string secretKey = "THIS_IS_MY_SECRET_KEY_FOR_APPOINTMENT_APP";
+        private readonly string secretKey = "THIS_IS_MY_SECRET_KEY_12345_FOR_HS256";
 
-        public string GenerateToken(string email)
+        public string GenerateToken(string email, string? role)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.Email, email)
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, string.IsNullOrWhiteSpace(role) ? "User" : role)
             };
 
             var token = new JwtSecurityToken(

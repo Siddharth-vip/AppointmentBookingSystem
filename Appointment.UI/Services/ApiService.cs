@@ -1,22 +1,44 @@
 using System.Text;
 using System.Text.Json;
+using System.Net.Http.Headers;
 using Appointment.UI.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace Appointment.UI.Services
 {
     public class ApiService
     {
         private readonly HttpClient _httpClient;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ApiService(HttpClient httpClient)
+        public ApiService(HttpClient httpClient, IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClient;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private HttpRequestMessage CreateAuthorizedRequest(HttpMethod method, string endpoint, HttpContent? content = null)
+        {
+            var request = new HttpRequestMessage(method, endpoint);
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            if (content != null)
+            {
+                request.Content = content;
+            }
+
+            return request;
         }
 
         // ===============================
         // LOGIN USER
         // ===============================
-        public async Task<User?> LoginUserAsync(string email, string password)
+        public async Task<LoginResponse?> LoginUserAsync(string email, string password)
         {
             var response = await _httpClient.PostAsync(
                 $"Auth/login?email={email}&password={password}", null);
@@ -26,13 +48,11 @@ namespace Appointment.UI.Services
 
             var json = await response.Content.ReadAsStringAsync();
 
-            var result = JsonSerializer.Deserialize<LoginResponse>(json,
+            return JsonSerializer.Deserialize<LoginResponse>(json,
                 new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-
-            return result?.User;
         }
 
         // ===============================
@@ -132,7 +152,7 @@ namespace Appointment.UI.Services
         // ===============================
         // BOOK APPOINTMENT
         // ===============================
-        public async Task<bool> BookAppointmentAsync(Appointment.UI.Models.Appointment appointment)
+        public async Task<BookingApiResult> BookAppointmentAsync(Appointment.UI.Models.Appointment appointment)
         {
             var json = JsonSerializer.Serialize(appointment, new JsonSerializerOptions
             {
@@ -141,9 +161,37 @@ namespace Appointment.UI.Services
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("appointment/book", content);
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "appointment/book", content);
+            var response = await _httpClient.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
 
-            return response.IsSuccessStatusCode;
+            string message = response.IsSuccessStatusCode
+                ? "Appointment booked successfully!"
+                : "Unable to book appointment.";
+
+            bool smsSent = false;
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                using var doc = JsonDocument.Parse(body);
+
+                if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                {
+                    message = msgProp.GetString() ?? message;
+                }
+
+                if (doc.RootElement.TryGetProperty("smsSent", out var smsProp) && smsProp.ValueKind == JsonValueKind.True)
+                {
+                    smsSent = true;
+                }
+            }
+
+            return new BookingApiResult
+            {
+                Success = response.IsSuccessStatusCode,
+                Message = message,
+                SmsSent = smsSent
+            };
         }
 
         // ===============================
@@ -179,9 +227,51 @@ namespace Appointment.UI.Services
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("timeslot/create", content);
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "timeslot/create", content);
+            var response = await _httpClient.SendAsync(request);
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<BookingApiResult> CreateAdminStandardSlotsAsync(int doctorId, DateTime slotDate)
+        {
+            var payload = new
+            {
+                DoctorId = doctorId,
+                SlotDate = slotDate.Date
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var request = CreateAuthorizedRequest(HttpMethod.Post, "admin/create-standard-slots", content);
+            var response = await _httpClient.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            string message = response.IsSuccessStatusCode
+                ? "Standard slots generated successfully."
+                : "Unable to generate slots.";
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                {
+                    message = msgProp.GetString() ?? message;
+                }
+
+                if (doc.RootElement.TryGetProperty("createdCount", out var countProp) && countProp.TryGetInt32(out int count))
+                {
+                    message = $"{message} Created slots: {count}.";
+                }
+            }
+
+            return new BookingApiResult
+            {
+                Success = response.IsSuccessStatusCode,
+                Message = message,
+                SmsSent = false
+            };
         }
 
         public async Task<bool> DeleteDoctorSlotAsync(int slotId, int doctorId)

@@ -28,7 +28,7 @@ namespace Appointment.API.Controllers
                 return BadRequest("Invalid email or password");
             }
 
-            var token = jwt.GenerateToken(user.Email);
+            var token = jwt.GenerateToken(user.Email ?? string.Empty, user.Role);
 
             return Ok(new
 {

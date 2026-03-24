@@ -60,36 +60,9 @@ namespace Appointment.UI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateSlot(DateTime slotDate, string startTime, string endTime)
+        public IActionResult CreateSlot(DateTime slotDate, string startTime, string endTime)
         {
-            var doctorId = HttpContext.Session.GetInt32("DoctorId");
-            if (doctorId == null)
-            {
-                return RedirectToAction("Login");
-            }
-
-            if (!TimeSpan.TryParse(startTime, out var start) || !TimeSpan.TryParse(endTime, out var end))
-            {
-                TempData["DoctorError"] = "Invalid start or end time.";
-                return RedirectToAction("Dashboard");
-            }
-
-            if (slotDate.Date < DateTime.Today || (slotDate.Date == DateTime.Today && start <= DateTime.Now.TimeOfDay))
-            {
-                TempData["DoctorError"] = "Please create slots only for current/future valid times.";
-                return RedirectToAction("Dashboard");
-            }
-
-            if (start >= end)
-            {
-                TempData["DoctorError"] = "Start time must be before end time.";
-                return RedirectToAction("Dashboard");
-            }
-
-            bool created = await api.CreateDoctorSlotAsync(doctorId.Value, slotDate, start, end);
-            TempData[created ? "DoctorSuccess" : "DoctorError"] = created
-                ? "Slot created successfully."
-                : "Unable to create slot.";
+            TempData["DoctorError"] = "Only admin can create slots.";
 
             return RedirectToAction("Dashboard");
         }
@@ -180,9 +153,17 @@ namespace Appointment.UI.Controllers
                 Status = "Booked"
             };
 
-            await api.BookAppointmentAsync(appointment);
+            var bookingResult = await api.BookAppointmentAsync(appointment);
 
-            TempData["SuccessMessage"] = "Appointment booked successfully!";
+            if (bookingResult.Success)
+            {
+                TempData["SuccessMessage"] = bookingResult.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = bookingResult.Message +
+                    (bookingResult.SmsSent ? " SMS notification sent to your number." : "");
+            }
 
             return RedirectToAction("Index", "Home");
         }

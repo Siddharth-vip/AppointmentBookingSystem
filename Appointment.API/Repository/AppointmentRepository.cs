@@ -13,92 +13,115 @@ namespace Appointment.API.Repository
         // ===============================
         // BOOK APPOINTMENT
         // ===============================
-        public void BookAppointment(Appointment.API.Models.Appointment appointment)
-{
-    using (SqlConnection conn = db.GetConnection())
-    {
-        conn.Open();
-
-        Console.WriteLine("🔥 DB Connected: " + conn.Database);
-        Console.WriteLine("🔥 SlotId: " + appointment.SlotId);
-
-        SqlTransaction transaction = conn.BeginTransaction();
-
-        try
+        public AppointmentBookingResult BookAppointment(Appointment.API.Models.Appointment appointment)
         {
-            // 🔒 1. Check slot
-            string checkQuery = @"SELECT IsBooked FROM TimeSlots WHERE SlotId = @SlotId";
-
-            SqlCommand checkCmd = new SqlCommand(checkQuery, conn, transaction);
-            checkCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
-
-            var result = checkCmd.ExecuteScalar();
-
-            if (result == null)
+            using (SqlConnection conn = db.GetConnection())
             {
-                Console.WriteLine("❌ Slot not found");
-                transaction.Rollback();
-                return;
+                conn.Open();
+
+                SqlTransaction transaction = conn.BeginTransaction();
+
+                try
+                {
+                    string checkQuery = @"SELECT IsBooked
+                                          FROM TimeSlots
+                                          WHERE SlotId = @SlotId
+                                          AND DoctorId = @DoctorId";
+
+                    SqlCommand checkCmd = new SqlCommand(checkQuery, conn, transaction);
+                    checkCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
+                    checkCmd.Parameters.AddWithValue("@DoctorId", appointment.DoctorId);
+
+                    var result = checkCmd.ExecuteScalar();
+
+                    if (result == null)
+                    {
+                        transaction.Rollback();
+
+                        return new AppointmentBookingResult
+                        {
+                            Success = false,
+                            ErrorCode = "SLOT_UNAVAILABLE",
+                            Message = "Doctor is not available kindly postpone the schedule."
+                        };
+                    }
+
+                    if (Convert.ToInt32(result) == 1)
+                    {
+                        transaction.Rollback();
+
+                        return new AppointmentBookingResult
+                        {
+                            Success = false,
+                            ErrorCode = "SLOT_UNAVAILABLE",
+                            Message = "Doctor is not available kindly postpone the schedule."
+                        };
+                    }
+
+                    string insertQuery = @"INSERT INTO Appointments
+                                           (UserId, DoctorId, SlotId, AppointmentDate, Status)
+                                           VALUES
+                                           (@UserId, @DoctorId, @SlotId, @AppointmentDate, @Status)";
+
+                    SqlCommand insertCmd = new SqlCommand(insertQuery, conn, transaction);
+                    insertCmd.Parameters.AddWithValue("@UserId", appointment.UserId);
+                    insertCmd.Parameters.AddWithValue("@DoctorId", appointment.DoctorId);
+                    insertCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
+                    insertCmd.Parameters.AddWithValue("@AppointmentDate", appointment.AppointmentDate);
+                    insertCmd.Parameters.AddWithValue("@Status", appointment.Status ?? "Booked");
+                    insertCmd.ExecuteNonQuery();
+
+                    string updateQuery = @"UPDATE TimeSlots
+                                           SET IsBooked = 1
+                                           WHERE SlotId = @SlotId";
+
+                    SqlCommand updateCmd = new SqlCommand(updateQuery, conn, transaction);
+                    updateCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
+
+                    int rows = updateCmd.ExecuteNonQuery();
+
+                    if (rows == 0)
+                    {
+                        transaction.Rollback();
+
+                        return new AppointmentBookingResult
+                        {
+                            Success = false,
+                            ErrorCode = "BOOKING_FAILED",
+                            Message = "Unable to book appointment. Please try again."
+                        };
+                    }
+
+                    transaction.Commit();
+
+                    return new AppointmentBookingResult
+                    {
+                        Success = true,
+                        Message = "Appointment booked successfully"
+                    };
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
             }
-
-            // ⚠️ DO NOT THROW — just stop
-            if (Convert.ToInt32(result) == 1)
-            {
-                Console.WriteLine("⚠ Slot already booked");
-                transaction.Rollback();
-                return;
-            }
-
-            // ✅ 2. Insert appointment
-            string insertQuery = @"INSERT INTO Appointments
-                (UserId, DoctorId, SlotId, AppointmentDate, Status)
-                VALUES
-                (@UserId, @DoctorId, @SlotId, @AppointmentDate, @Status)";
-
-            SqlCommand insertCmd = new SqlCommand(insertQuery, conn, transaction);
-
-            insertCmd.Parameters.AddWithValue("@UserId", appointment.UserId);
-            insertCmd.Parameters.AddWithValue("@DoctorId", appointment.DoctorId);
-            insertCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
-            insertCmd.Parameters.AddWithValue("@AppointmentDate", appointment.AppointmentDate);
-            insertCmd.Parameters.AddWithValue("@Status", appointment.Status ?? "Booked");
-
-            insertCmd.ExecuteNonQuery();
-
-            Console.WriteLine("✅ Insert Success");
-
-            // 🔥 3. Update slot
-            string updateQuery = @"UPDATE TimeSlots
-                                   SET IsBooked = 1
-                                   WHERE SlotId = @SlotId";
-
-            SqlCommand updateCmd = new SqlCommand(updateQuery, conn, transaction);
-            updateCmd.Parameters.AddWithValue("@SlotId", appointment.SlotId);
-
-            int rows = updateCmd.ExecuteNonQuery();
-
-            Console.WriteLine("🔥 Rows Updated: " + rows);
-
-            if (rows == 0)
-            {
-                Console.WriteLine("⚠ No rows updated");
-                transaction.Rollback();
-                return;
-            }
-
-            // ✅ 4. Commit
-            transaction.Commit();
-
-            Console.WriteLine("🎉 Booking successful + Slot updated");
         }
-        catch (Exception ex)
+
+        public string? GetUserPhone(int userId)
         {
-            transaction.Rollback();
-            Console.WriteLine("❌ ERROR: " + ex.Message);
-            throw;
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string query = "SELECT TOP 1 Phone FROM Users WHERE UserId = @UserId";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+
+                var result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? null : result.ToString();
+            }
         }
-    }
-}
 
         // ===============================
         // GET ALL APPOINTMENTS
@@ -202,6 +225,9 @@ namespace Appointment.API.Repository
 
                 while (reader.Read())
                 {
+                    var startTime = (TimeSpan)reader["StartTime"];
+                    var endTime = (TimeSpan)reader["EndTime"];
+
                     list.Add(new
                     {
                         AppointmentId = Convert.ToInt32(reader["AppointmentId"]),
@@ -212,8 +238,8 @@ namespace Appointment.API.Repository
                         PatientName = reader["PatientName"].ToString(),
                         PatientEmail = reader["PatientEmail"].ToString(),
                         SlotDate = Convert.ToDateTime(reader["SlotDate"]),
-                        StartTime = reader["StartTime"].ToString(),
-                        EndTime = reader["EndTime"].ToString()
+                        StartTime = DateTime.Today.Add(startTime).ToString("hh:mm tt"),
+                        EndTime = DateTime.Today.Add(endTime).ToString("hh:mm tt")
                     });
                 }
             }

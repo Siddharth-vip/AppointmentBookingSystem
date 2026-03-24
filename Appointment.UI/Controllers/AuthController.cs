@@ -29,18 +29,31 @@ namespace Appointment.UI.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string email, string password, string? returnUrl = null)
         {
-            var user = await _apiService.LoginUserAsync(email, password);
+            var loginResponse = await _apiService.LoginUserAsync(email, password);
 
-            if (user != null)
+            if (loginResponse?.User != null)
             {
+                var user = loginResponse.User;
+
                 // Save session values
                 HttpContext.Session.SetInt32("UserId", user.UserId);
                 HttpContext.Session.SetString("UserName", user.Name);
+                HttpContext.Session.SetString("UserRole", loginResponse.Role ?? user.Role ?? "User");
+
+                if (!string.IsNullOrWhiteSpace(loginResponse.Token))
+                {
+                    HttpContext.Session.SetString("JwtToken", loginResponse.Token);
+                }
 
                 // If login came from booking page
                 if (!string.IsNullOrEmpty(returnUrl))
                 {
                     return Redirect(returnUrl);
+                }
+
+                if (string.Equals(loginResponse.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RedirectToAction("Dashboard", "Admin");
                 }
 
                 // Default redirect

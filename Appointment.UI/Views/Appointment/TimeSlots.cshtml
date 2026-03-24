@@ -1,5 +1,27 @@
 @model List<TimeSlot>
 
+@functions {
+    public static string To12Hour(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        if (TimeSpan.TryParse(value, out var timeSpanValue))
+        {
+            return DateTime.Today.Add(timeSpanValue).ToString("hh:mm tt");
+        }
+
+        if (DateTime.TryParse(value, out var dateTimeValue))
+        {
+            return dateTimeValue.ToString("hh:mm tt");
+        }
+
+        return value;
+    }
+}
+
 <div class="container mt-5">
 
     <h2 class="text-center mb-4">Available Time Slots</h2>
@@ -21,7 +43,7 @@
                     <div class="card shadow-sm text-center p-3">
 
                         <h5>
-                            @slot.StartTime - @slot.EndTime
+                            @To12Hour(slot.StartTime) - @To12Hour(slot.EndTime)
                         </h5>
 
                         <form method="post" action="/Appointment/Book">

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Appointment.API.Repository;
 using Appointment.API.Models;
+using Appointment.API.Services;
 
 namespace Appointment.API.Controllers
 {
@@ -9,10 +10,12 @@ namespace Appointment.API.Controllers
     public class AppointmentController : ControllerBase
     {
         private readonly AppointmentRepository repo;
+        private readonly SmsService smsService;
 
         public AppointmentController()
         {
             repo = new AppointmentRepository();
+            smsService = new SmsService();
         }
 
         // ===============================
@@ -21,19 +24,36 @@ namespace Appointment.API.Controllers
         [HttpPost("book")]
         public IActionResult BookAppointment([FromBody] Appointment.API.Models.Appointment appointment)
         {
-            Console.WriteLine($"🔥 SlotId received: {appointment.SlotId}");
-
             if (appointment.SlotId == 0)
             {
                 return BadRequest("SlotId is 0 - Data not received properly");
             }
 
-            // Save appointment
-            repo.BookAppointment(appointment);
+            var result = repo.BookAppointment(appointment);
+
+            if (!result.Success && result.ErrorCode == "SLOT_UNAVAILABLE")
+            {
+                string? phone = repo.GetUserPhone(appointment.UserId);
+                bool smsSent = smsService.SendDoctorUnavailableMessage(phone);
+
+                return Conflict(new
+                {
+                    message = result.Message,
+                    smsSent
+                });
+            }
+
+            if (!result.Success)
+            {
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
 
             return Ok(new
             {
-                message = "Appointment booked successfully"
+                message = result.Message
             });
         }
 

@@ -6,7 +6,39 @@
     List<TimeSlot>? slots = ViewBag.Slots as List<TimeSlot>;
 }
 
+@functions {
+    public static string To12Hour(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        if (TimeSpan.TryParse(value, out var timeSpanValue))
+        {
+            return DateTime.Today.Add(timeSpanValue).ToString("hh:mm tt");
+        }
+
+        if (DateTime.TryParse(value, out var dateTimeValue))
+        {
+            return dateTimeValue.ToString("hh:mm tt");
+        }
+
+        return value;
+    }
+}
+
 <h2>Doctor Time Slots</h2>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
 
 @if (slots == null || slots.Count == 0)
 {
@@ -31,18 +63,11 @@ else
     @foreach (var slot in slots)
     {
         <tr>
-
-          
-
             <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
 
-            <td>@DateTime.Parse(slot.StartTime).ToString("hh:mm tt")</td>
+            <td>@To12Hour(slot.StartTime)</td>
 
-            <td>@DateTime.Parse(slot.EndTime).ToString("hh:mm tt")</td>
-
-            <!-- 🔥 ADD THIS LINE -->
-            <td>@slot.SlotId</td>
-
+            <td>@To12Hour(slot.EndTime)</td>
 
             <td>
                 @if (slot.IsBooked)

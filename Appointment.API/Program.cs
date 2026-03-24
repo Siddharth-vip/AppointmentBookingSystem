@@ -14,8 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// JWT Secret Key
-var key = Encoding.ASCII.GetBytes("THIS_IS_MY_SECRET_KEY_12345");
+// JWT Secret Key (must be >= 32 bytes for HS256)
+var key = Encoding.ASCII.GetBytes("THIS_IS_MY_SECRET_KEY_12345_FOR_HS256");
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>

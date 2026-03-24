@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add MVC services
 // ===============================
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 
 // ===============================
 // Register ApiService with HttpClient

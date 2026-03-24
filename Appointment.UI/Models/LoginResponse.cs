@@ -2,8 +2,9 @@ namespace Appointment.UI.Models
 {
     public class LoginResponse
     {
-        public string Message { get; set; }
-        public string Token { get; set; }
-        public User User { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public User User { get; set; } = new User();
     }
 }

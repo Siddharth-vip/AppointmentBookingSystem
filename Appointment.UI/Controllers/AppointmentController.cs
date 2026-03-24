@@ -66,9 +66,18 @@ namespace Appointment.UI.Controllers
                 Status = "Booked"
             };
 
-            await api.BookAppointmentAsync(appointment);
+            var bookingResult = await api.BookAppointmentAsync(appointment);
 
-            TempData["SuccessMessage"] = "Appointment booked successfully!";
+            if (bookingResult.Success)
+            {
+                TempData["SuccessMessage"] = bookingResult.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = bookingResult.Message +
+                    (bookingResult.SmsSent ? " SMS notification sent to your number." : "");
+                return RedirectToAction("Book", new { doctorId });
+            }
 
             return RedirectToAction("Index", "Home");
         }

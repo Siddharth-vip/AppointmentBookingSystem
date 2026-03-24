@@ -1,27 +1,65 @@
-<h2>Admin Dashboard</h2>
+@model AdminDashboardViewModel
 
-<div class="row">
+@{
+	ViewData["Title"] = "Admin Dashboard";
+}
 
-<div class="col-md-3">
-<div class="card">
-<div class="card-body">
+<div class="container mt-4">
+	<h2>Admin Slot Management</h2>
+	<p class="text-muted mb-4">Only admin can create 1-hour slots for 10:00-12:00 and 13:00-17:00.</p>
 
-<h5>Total Doctors</h5>
-<h2>15</h2>
+	@if (TempData["AdminSuccess"] != null)
+	{
+		<div class="alert alert-success">@TempData["AdminSuccess"]</div>
+	}
 
-</div>
-</div>
-</div>
+	@if (TempData["AdminError"] != null)
+	{
+		<div class="alert alert-danger">@TempData["AdminError"]</div>
+	}
 
-<div class="col-md-3">
-<div class="card">
-<div class="card-body">
-
-<h5>Total Appointments</h5>
-<h2>45</h2>
-
-</div>
-</div>
-</div>
-
+	<div class="card">
+		<div class="card-header">Doctors</div>
+		<div class="card-body p-0">
+			<table class="table table-bordered mb-0">
+				<thead>
+					<tr>
+						<th>Doctor ID</th>
+						<th>Name</th>
+						<th>Specialization</th>
+						<th>Experience</th>
+						<th>Generate Daily Slots</th>
+					</tr>
+				</thead>
+				<tbody>
+				@if (Model.Doctors == null || Model.Doctors.Count == 0)
+				{
+					<tr>
+						<td colspan="5" class="text-center">No doctors found.</td>
+					</tr>
+				}
+				else
+				{
+					foreach (var doctor in Model.Doctors)
+					{
+						<tr>
+							<td>@doctor.DoctorId</td>
+							<td>@doctor.DoctorName</td>
+							<td>@doctor.Specialization</td>
+							<td>@doctor.Experience years</td>
+							<td>
+								<form asp-controller="Admin" asp-action="CreateStandardSlots" method="post" class="d-flex gap-2 align-items-center">
+									@Html.AntiForgeryToken()
+									<input type="hidden" name="doctorId" value="@doctor.DoctorId" />
+									<input type="date" name="slotDate" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+									<button type="submit" class="btn btn-primary">Generate</button>
+								</form>
+							</td>
+						</tr>
+					}
+				}
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>

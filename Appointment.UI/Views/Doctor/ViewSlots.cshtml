@@ -5,6 +5,28 @@
     ViewData["Title"] = "Doctor Slots";
 }
 
+@functions {
+    public static string To12Hour(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        if (TimeSpan.TryParse(value, out var timeSpanValue))
+        {
+            return DateTime.Today.Add(timeSpanValue).ToString("hh:mm tt");
+        }
+
+        if (DateTime.TryParse(value, out var dateTimeValue))
+        {
+            return dateTimeValue.ToString("hh:mm tt");
+        }
+
+        return value;
+    }
+}
+
 <h2>Doctor Available Slots</h2>
 
 <table class="table table-bordered">
@@ -30,9 +52,9 @@
 
         <td>@slot.SlotDate.ToString("dd-MM-yyyy")</td>
 
-        <td>@slot.StartTime</td>
+        <td>@To12Hour(slot.StartTime)</td>
 
-        <td>@slot.EndTime</td>
+        <td>@To12Hour(slot.EndTime)</td>
 
         <td>
             @if (slot.IsBooked)

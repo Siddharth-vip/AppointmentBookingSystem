@@ -1,6 +1,7 @@
 using Appointment.API.Database;
 using Appointment.API.Models;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace Appointment.API.Repository
 {
@@ -89,6 +90,66 @@ namespace Appointment.API.Repository
                 cmd.Parameters.AddWithValue("@EndTime", slot.EndTime);
 
                 return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+
+        public int CreateStandardSlotsForDate(int doctorId, DateTime slotDate)
+        {
+            var oneHourSlots = new List<(TimeSpan Start, TimeSpan End)>
+            {
+                (new TimeSpan(10, 0, 0), new TimeSpan(11, 0, 0)),
+                (new TimeSpan(11, 0, 0), new TimeSpan(12, 0, 0)),
+                (new TimeSpan(13, 0, 0), new TimeSpan(14, 0, 0)),
+                (new TimeSpan(14, 0, 0), new TimeSpan(15, 0, 0)),
+                (new TimeSpan(15, 0, 0), new TimeSpan(16, 0, 0)),
+                (new TimeSpan(16, 0, 0), new TimeSpan(17, 0, 0))
+            };
+
+            using (SqlConnection conn = db.GetConnection())
+            {
+                conn.Open();
+
+                string existingQuery = @"SELECT StartTime
+                                         FROM TimeSlots
+                                         WHERE DoctorId = @DoctorId
+                                         AND SlotDate = @SlotDate";
+
+                SqlCommand existingCmd = new SqlCommand(existingQuery, conn);
+                existingCmd.Parameters.AddWithValue("@DoctorId", doctorId);
+                existingCmd.Parameters.AddWithValue("@SlotDate", slotDate.Date);
+
+                HashSet<TimeSpan> existingStarts = new HashSet<TimeSpan>();
+
+                using (var reader = existingCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        existingStarts.Add((TimeSpan)reader["StartTime"]);
+                    }
+                }
+
+                string insertQuery = @"INSERT INTO TimeSlots (DoctorId, SlotDate, StartTime, EndTime, IsBooked)
+                                       VALUES (@DoctorId, @SlotDate, @StartTime, @EndTime, 0)";
+
+                int created = 0;
+
+                foreach (var slot in oneHourSlots)
+                {
+                    if (existingStarts.Contains(slot.Start))
+                    {
+                        continue;
+                    }
+
+                    SqlCommand insertCmd = new SqlCommand(insertQuery, conn);
+                    insertCmd.Parameters.Add("@DoctorId", SqlDbType.Int).Value = doctorId;
+                    insertCmd.Parameters.Add("@SlotDate", SqlDbType.Date).Value = slotDate.Date;
+                    insertCmd.Parameters.Add("@StartTime", SqlDbType.Time).Value = slot.Start;
+                    insertCmd.Parameters.Add("@EndTime", SqlDbType.Time).Value = slot.End;
+
+                    created += insertCmd.ExecuteNonQuery();
+                }
+
+                return created;
             }
         }
 

@@ -4,7 +4,14 @@
 <TargetFramework>net8.0</TargetFramework>
 <Nullable>enable</Nullable>
 <ImplicitUsings>enable</ImplicitUsings>
+<UseAppHost>false</UseAppHost>
 </PropertyGroup>
+
+<Target Name="StopRunningUiProcess" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT'">
+  <Exec
+    Command="$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\stop-dotnet-locks.ps1&quot; -AppProcessName &quot;Appointment.UI&quot; -DllPattern &quot;Appointment.UI\bin\Debug\net8.0\Appointment.UI.dll&quot;"
+    ContinueOnError="true" />
+</Target>
 
 <ItemGroup>
   <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
